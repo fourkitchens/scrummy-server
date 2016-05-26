@@ -1,0 +1,24 @@
+{
+  "name": "scrummy",
+  "version": "0.0.0",
+  "author": "Flip",
+  "description": "♠️♣️♥️♦️",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=5.0.0"
+  },
+  "scripts": {
+    "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && ./node_modules/.bin/codecov",
+    "lint": "./node_modules/.bin/eslint .",
+    "test": "./node_modules/.bin/nyc ./node_modules/.bin/ava"
+  },
+  "devDependencies": {
+    "ava": "^0.15.0",
+    "codecov": "^1.0.1",
+    "eslint": "^2.10.2",
+    "eslint-config-airbnb-base": "^3.0.1",
+    "eslint-plugin-import": "^1.8.0",
+    "nyc": "^6.4.4"
+  }
+}

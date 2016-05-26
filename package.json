@@ -9,9 +9,10 @@
     "node": ">=5.0.0"
   },
   "scripts": {
-    "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && ./node_modules/.bin/codecov",
     "lint": "./node_modules/.bin/eslint .",
-    "test": "./node_modules/.bin/nyc ./node_modules/.bin/ava"
+    "test": "./node_modules/.bin/nyc ./node_modules/.bin/ava",
+    "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && ./node_modules/.bin/codecov",
+    "view-coverage": "./node_modules/.bin/nyc report --reporter=html ./node_modules/.bin/ava && open ./coverage/index.html"
   },
   "devDependencies": {
     "ava": "^0.15.0",

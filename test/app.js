@@ -18,7 +18,7 @@ test.afterEach.always(async t => {
   }
 });
 
-test.cb('ready to test', t => {
+test.cb('echoes', t => {
   t.plan(1);
   const message = 'Hello World!';
   t.context.ws.send(message);

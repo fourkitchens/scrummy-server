@@ -15,7 +15,7 @@ function generateGameName(existingGameNames) {
   while (!result || existingGameNames.includes(result)) {
     result = i++ < 5
       ? config.words[Math.floor(Math.random() * config.words.length)]
-      : result = Math.floor(Math.random() * 100000);
+      : Math.floor(Math.random() * 100000);
   }
   return result;
 }

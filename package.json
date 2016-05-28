@@ -14,7 +14,7 @@
     "test": "./node_modules/.bin/nyc ./node_modules/.bin/ava",
     "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && ./node_modules/.bin/codecov",
     "view-coverage": "./node_modules/.bin/nyc report --reporter=html ./node_modules/.bin/ava && open ./coverage/index.html",
-    "quality": "./node_modules/.bin/codeclimate-test-reporter < ./node_modules/.bin/nyc report --reporter=text-lcov"
+    "quality": "./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/codeclimate-test-reporter"
   },
   "devDependencies": {
     "ava": "^0.15.0",

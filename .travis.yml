@@ -3,7 +3,8 @@ node_js: 6.0.0
 install: npm i
 script:
 - npm t
-- npm run lint
+- npm run lint-code
+- npm run lint-writing
 after_success:
 - npm run coverage
 - npm run quality

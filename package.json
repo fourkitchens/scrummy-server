@@ -10,13 +10,15 @@
   },
   "scripts": {
     "start": "node app",
-    "lint": "./node_modules/.bin/eslint .",
+    "lint-code": "./node_modules/.bin/eslint .",
+    "lint-writing": "./node_modules/.bin/write-good *.md && ./node_modules/.bin/alex",
     "test": "./node_modules/.bin/nyc ./node_modules/.bin/ava",
     "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && ./node_modules/.bin/codecov",
     "view-coverage": "./node_modules/.bin/nyc report --reporter=html ./node_modules/.bin/ava && open ./coverage/index.html",
     "quality": "./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/codeclimate-test-reporter"
   },
   "devDependencies": {
+    "alex": "^3.0.0",
     "ava": "^0.15.0",
     "babel-eslint": "^6.0.4",
     "codeclimate-test-reporter": "^0.3.1",
@@ -24,7 +26,8 @@
     "eslint": "^2.10.2",
     "eslint-config-airbnb-base": "^3.0.1",
     "eslint-plugin-import": "^1.8.0",
-    "nyc": "^6.4.4"
+    "nyc": "^6.4.4",
+    "write-good": "^0.9.1"
   },
   "dependencies": {
     "config": "^1.20.4",

@@ -1,6 +1,5 @@
 const config = require('config');
 const server = require('./server');
-const wss = server(config.get('port'));
 
 const generateGameName = require('./util/generateGameName');
 const getFormattedEntityName = require('./util/getFormattedEntityName');
@@ -8,6 +7,7 @@ const getUniqueFormattedEntityName = require('./util/getUniqueFormattedEntityNam
 
 class Scrummy {
   constructor() {
+    this.wss = server(config.get('port'));
     this.bucket = {};
     this.setupMessageHandling();
     this.exposedMethods = [
@@ -15,7 +15,7 @@ class Scrummy {
     ];
   }
   setupMessageHandling() {
-    wss.on('connection', ws => {
+    this.wss.on('connection', ws => {
       ws.on('message', message => {
         const data = JSON.parse(message);
         if (this.exposedMethods.includes(data.type)) {
@@ -25,6 +25,9 @@ class Scrummy {
         }
       });
     });
+  }
+  shutdown() {
+    this.wss.close();
   }
   broadcast(data, clients) {
     clients.forEach(client => client.ws.send(data));

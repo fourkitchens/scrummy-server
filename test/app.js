@@ -27,6 +27,7 @@ test.beforeEach(async t => {
 });
 
 test.afterEach.always(async t => {
+  t.context.app.shutdown();
   t.context.sockets.forEach(socket => {
     if (socket.connected) {
       socket.close();
@@ -34,7 +35,7 @@ test.afterEach.always(async t => {
   });
 });
 
-test.cb('Can start a new game', t => {
+test.serial.cb('Can start a new game', t => {
   t.plan(3);
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
@@ -50,7 +51,7 @@ test.cb('Can start a new game', t => {
   });
 });
 
-test.cb('Accepts multiple users in a single room', t => {
+test.serial.cb('Accepts multiple users in a single room', t => {
   t.plan(6);
   avengers.forEach((nickname, index) => {
     t.context.sockets[index].send(JSON.stringify({
@@ -101,7 +102,7 @@ test.serial.cb('Supports multiple rooms independently', t => {
   });
 });
 
-test.cb('Won\'t let a duplicate nickname in', t => {
+test.serial.cb('Won\'t let a duplicate nickname in', t => {
   t.plan(1);
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
@@ -120,7 +121,7 @@ test.cb('Won\'t let a duplicate nickname in', t => {
   });
 });
 
-test.cb('Responds politely when the message is junk', t => {
+test.serial.cb('Responds politely when the message is junk', t => {
   t.plan(1);
   t.context.sockets[0].send(JSON.stringify({
     type: 'HAHAHAHAHEYTHERE',

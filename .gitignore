@@ -1,3 +1,4 @@
 node_modules
 coverage
+config/local.yml
 .nyc_output

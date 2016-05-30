@@ -17,8 +17,10 @@ class Scrummy {
   setupMessageHandling() {
     this.wss.on('connection', ws => {
       ws.on('message', message => {
+        process.stdout.write(`received message: ${message}\n`);
         const data = JSON.parse(message);
         if (this.exposedMethods.includes(data.type)) {
+          process.stdout.write(`performing: ${data.type}\n`);
           this[data.type](data, ws);
         } else {
           this.handleInvalidMessage(data, ws);
@@ -46,6 +48,7 @@ class Scrummy {
         clients: [],
         users: [],
       };
+      process.stdout.write(`created game: ${requestedGame}\n`);
     }
     const nickname = getUniqueFormattedEntityName(
       data.nickname,
@@ -79,6 +82,7 @@ class Scrummy {
       nickname,
       users: this.bucket[requestedGame].users,
     }), this.bucket[requestedGame].clients);
+    process.stdout.write(`added user ${nickname} to ${requestedGame}\n`);
   }
 }
 

@@ -1,5 +1,6 @@
+dir: util
 files:
-- index.js
+- app.js
 packageJson: package.json
 articles:
 - Overview: README.md

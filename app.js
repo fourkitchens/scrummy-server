@@ -110,6 +110,7 @@ class Scrummy {
       type: 'someoneVoted',
       votes: this.bucket[data.game].votes,
     }), this.bucket[data.game].clients);
+    process.stdout.write(`${data.nickname} voted ${data.vote} in ${data.game}\n`);
   }
 }
 

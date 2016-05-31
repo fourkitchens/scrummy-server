@@ -8,10 +8,12 @@ const getUniqueFormattedEntityName = require('./util/getUniqueFormattedEntityNam
 class Scrummy {
   constructor() {
     this.wss = server(config.get('port'));
+    this.points = config.get('points');
     this.bucket = {};
     this.setupMessageHandling();
     this.exposedMethods = [
       'signIn',
+      'placeVote',
     ];
   }
   setupMessageHandling() {
@@ -47,6 +49,7 @@ class Scrummy {
       this.bucket[requestedGame] = {
         clients: [],
         users: [],
+        votes: {},
       };
       process.stdout.write(`created game: ${requestedGame}\n`);
     }
@@ -83,6 +86,30 @@ class Scrummy {
       users: this.bucket[requestedGame].users,
     }), this.bucket[requestedGame].clients);
     process.stdout.write(`added user ${nickname} to ${requestedGame}\n`);
+  }
+  placeVote(data, ws) {
+    if (!this.bucket[data.game]) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: `${data.game} does not exist!`,
+      }));
+      return;
+    }
+    if (!this.points.includes(data.vote.toString())) {
+      ws.send(JSON.stringify({
+        type: 'error',
+        message: `${data.vote} is not a valid vote!`,
+      }));
+      return;
+    }
+    this.bucket[data.game].votes[data.nickname] = data.vote;
+    ws.send(JSON.stringify({
+      type: 'youVoted',
+    }));
+    this.broadcast(JSON.stringify({
+      type: 'someoneVoted',
+      votes: this.bucket[data.game].votes,
+    }), this.bucket[data.game].clients);
   }
 }
 

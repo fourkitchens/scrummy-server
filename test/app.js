@@ -132,3 +132,91 @@ test.serial.cb('Responds politely when the message is junk', t => {
     t.end();
   });
 });
+
+test.serial.cb('Allows user to vote', t => {
+  t.plan(1);
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: data.game,
+        nickname: data.nickname,
+        vote: 1,
+      }));
+    }
+    if (data.type === 'someoneVoted') {
+      if (t.context.app.bucket[game].votes.taylor === 1) {
+        t.pass();
+        t.end();
+      } else {
+        t.fail();
+        t.end();
+      }
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname: 'Taylor',
+  }));
+});
+
+test.serial.cb('Errors if vote is invalid', t => {
+  t.plan(1);
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: data.game,
+        nickname: data.nickname,
+        vote: '🍰',
+      }));
+    }
+    if (data.type === 'error') {
+      if (data.message === '🍰 is not a valid vote!') {
+        t.pass();
+        t.end();
+      } else {
+        t.fail();
+        t.end();
+      }
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname: 'Taylor',
+  }));
+});
+
+test.serial.cb('Errors if game is invalid', t => {
+  t.plan(1);
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: 'sandwich',
+        nickname: data.nickname,
+        vote: 5,
+      }));
+    }
+    if (data.type === 'error') {
+      if (data.message === 'sandwich does not exist!') {
+        t.pass();
+        t.end();
+      } else {
+        t.fail();
+        t.end();
+      }
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname: 'Taylor',
+  }));
+});

@@ -17,6 +17,12 @@
     "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && ./node_modules/.bin/codecov",
     "quality": "./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/codeclimate-test-reporter"
   },
+  "nyc": {
+    "exclude": [
+      "test",
+      "**/_*.js"
+    ]
+  },
   "devDependencies": {
     "alex": "^3.0.0",
     "ava": "^0.15.0",

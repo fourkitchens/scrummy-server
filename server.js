@@ -1,7 +1,9 @@
 const WebSocketServer = require('ws').Server;
 
+const logger = require('./util/_logger');
+
 module.exports = function server(port) {
-  process.stdout.write(`websocketing on localhost:${port}\n`);
+  logger(`websocketing on localhost:${port}\n`);
   return new WebSocketServer({
     port,
   });

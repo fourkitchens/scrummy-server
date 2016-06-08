@@ -1,7 +1,24 @@
 {
   "name": "scrummy",
   "version": "0.0.0",
-  "author": "Flip",
+  "author": "Four Kitchens",
+  "contributors": [
+    {
+      "name" : "Taylor",
+      "email" : "taylor@fourkitchens.com",
+      "url" : "https://github.com/tsmith512"
+    },
+    {
+      "name" : "Flip",
+      "email" : "flip@fourkitchens.com",
+      "url" : "https://github.com/flipactual"
+    },
+    {
+      "name" : "Luke",
+      "email" : "luke@fourkitchens.com",
+      "url" : "https://github.com/infiniteluke"
+    }
+  ],
   "description": "♠️♣️♥️♦️",
   "private": true,
   "license": "MIT",

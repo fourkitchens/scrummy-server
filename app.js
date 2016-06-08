@@ -42,10 +42,14 @@ class Scrummy {
         logger(`received message: ${message}\n`);
         const data = JSON.parse(message);
         if (this.exposedMethods.includes(data.type)) {
-          logger(`performing: ${data.type}\n`);
-          this[data.type](data, ws);
+          try {
+            logger(`performing: ${data.type}\n`);
+            this[data.type](data, ws);
+          } catch (e) {
+            this.handleError(e.message, ws);
+          }
         } else {
-          this.handleInvalidMessage(data, ws);
+          this.handleError(`${data.type} is not a message type Scrummy is prepared for!`, ws);
         }
       });
     });
@@ -73,19 +77,20 @@ class Scrummy {
     clients.forEach(client => client.ws.send(data));
   }
   /**
-   * handleInvalidMessage
-   *   Sends an error to the client informing them that their message cannot be handled.
+   * handleError
+   *   Sends an error to the client.
    *
-   * @param {Object} data
-   *   The received message in Object form.
+   * @param {string} message
+   *   The error message to send.
    * @param {Object} ws
    *   The client to send the message to.
    * @return {undefined}
    */
-  handleInvalidMessage(data, ws) {
+  handleError(message, ws) {
+    logger(`${message}\n`);
     ws.send(JSON.stringify({
       type: 'error',
-      message: `${data.type} is not a message type Scrummy is prepared for!`,
+      message,
     }));
   }
   /**
@@ -114,11 +119,7 @@ class Scrummy {
       this.bucket[requestedGame].users.map(user => user.nickname)
     );
     if (!nickname) {
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: 'This username is unavailable; please pick another.',
-      }));
-      return;
+      throw new Error('This username is unavailable; please pick another.');
     }
     this.bucket[requestedGame].clients.push({
       nickname,
@@ -155,18 +156,10 @@ class Scrummy {
    */
   placeVote(data, ws) {
     if (!this.bucket[data.game]) {
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: `${data.game} does not exist!`,
-      }));
-      return;
+      throw new Error(`${data.game} does not exist!`);
     }
     if (!this.points.includes(data.vote.toString())) {
-      ws.send(JSON.stringify({
-        type: 'error',
-        message: `${data.vote} is not a valid vote!`,
-      }));
-      return;
+      throw new Error(`${data.vote} is not a valid vote!`);
     }
     this.bucket[data.game].votes[data.nickname] = data.vote;
     ws.send(JSON.stringify({

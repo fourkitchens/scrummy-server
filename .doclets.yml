@@ -1,6 +1,0 @@
-dir: util
-files:
-- app.js
-packageJson: package.json
-articles:
-- Overview: README.md

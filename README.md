@@ -1,9 +1,9 @@
 # Scrummy
 
-[![travis](https://travis-ci.org/fourkitchens/scrummy-server.svg)](https://travis-ci.org/fourkitchens/scrummy-server/)
-[![codecov](https://codecov.io/gh/fourkitchens/scrummy-server/branch/master/graph/badge.svg)](https://codecov.io/gh/fourkitchens/scrummy-server)
-[![doclets](https://doclets.io/fourkitchens/scrummy-server/master.svg)](https://doclets.io/fourkitchens/scrummy-server/master)
-[![codeclimate](https://codeclimate.com/github/fourkitchens/scrummy-server/badges/gpa.svg)](https://codeclimate.com/github/fourkitchens/scrummy-server)
+[![Four Kitchens](https://img.shields.io/badge/4K-Four%20Kitchens-35AA4E.svg?style=flat-square)](https://fourkitchens.com/)
+[![Travis](https://img.shields.io/travis/fourkitchens/scrummy-server.svg?style=flat-square)](https://travis-ci.org/fourkitchens/scrummy-server/)
+[![Codecov](https://img.shields.io/codecov/c/github/fourkitchens/scrummy-server.svg?style=flat-square)](https://codecov.io/gh/fourkitchens/scrummy-server)
+[![Code Climate](https://img.shields.io/codeclimate/github/fourkitchens/scrummy-server.svg?style=flat-square)](https://codeclimate.com/github/fourkitchens/scrummy-server)
 
 ## Getting started
 

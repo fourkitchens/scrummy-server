@@ -14,9 +14,6 @@ const avengers = [
 
 test.beforeEach(async t => {
   t.context.app = new Scrummy;
-});
-
-test.beforeEach(async t => {
   t.context.sockets = [];
   const promises = [];
   for (let i = 0; i < 8; i++) {
@@ -33,6 +30,7 @@ test.afterEach.always(async t => {
       socket.close();
     }
   });
+  delete t.context.app;
 });
 
 test.serial.cb('Can start a new game', t => {

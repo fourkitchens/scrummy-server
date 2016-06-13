@@ -1,4 +1,8 @@
 parser: babel-eslint
-extends: airbnb-base
+plugins:
+  - ava
+extends:
+  - airbnb-base
+  - plugin:ava/recommended
 rules:
   no-param-reassign: [2, { props: false }]

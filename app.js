@@ -177,7 +177,7 @@ class Scrummy {
    *   Resets the given game.
    *
    * @param {Object} data
-   *   Th message from the client.
+   *   The message from the client.
    * @return {undefined}
    */
   reset(data) {

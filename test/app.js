@@ -163,6 +163,88 @@ test.serial.cb('Allows user to vote', t => {
   }));
 });
 
+test.serial.cb('Fails on reveal if there are no votes for the given game', t => {
+  t.plan(1);
+  let nickname;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.nickname) {
+      nickname = data.nickname;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'reveal',
+        game: data.game,
+        nickname: data.nickname,
+      }));
+    }
+    if (data.type === 'error') {
+      t.is(data.message, `${nickname} has no votes to reveal!`);
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname: 'Taylor',
+  }));
+});
+
+test.serial.cb('Fails on reveal if game doesn\'t exist', t => {
+  t.plan(1);
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'reveal',
+        game: 'notagame',
+        nickname: data.nickname,
+      }));
+    }
+    if (data.type === 'error') {
+      t.is(data.message, 'notagame does not exist!');
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname: 'Taylor',
+  }));
+});
+
+test.serial.cb('Allows user to reveal votes', t => {
+  t.plan(1);
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game,
+        nickname: data.nickname,
+        vote: 1,
+      }));
+    }
+    if (data.type === 'someoneVoted') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'reveal',
+        game,
+        nickname: data.nickname,
+      }));
+    }
+    if (data.type === 'reveal') {
+      t.pass();
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname: 'Taylor',
+  }));
+});
+
 test.serial.cb('Errors if vote is invalid', t => {
   t.plan(1);
   t.context.sockets[0].on('message', response => {

@@ -26,6 +26,7 @@ class Scrummy {
       'signIn',
       'placeVote',
       'reset',
+      'reveal',
     ];
   }
   /**
@@ -190,6 +191,25 @@ class Scrummy {
       votes: this.bucket[data.game].votes,
     }), this.bucket[data.game].clients);
     logger(`${data.nickname} reset ${data.game}\n`);
+  }
+  /**
+   * reveal
+   *   Broadcasts a reveal event to the appropriate game.
+   *
+   * @param {Object} data
+   *   The message from the client.
+   * @return {undefined}
+   */
+  reveal(data) {
+    if (!this.bucket[data.game]) {
+      throw new Error(`${data.game} does not exist!`);
+    }
+    // If game has no votes
+    if (Object.keys(this.bucket[data.game].votes).length < 1) {
+      throw new Error(`${data.nickname} has no votes to reveal!`);
+    }
+    this.broadcast(JSON.stringify({ type: 'reveal' }), this.bucket[data.game].clients);
+    logger(`${data.nickname} revealed votes in ${data.game}\n`);
   }
 }
 

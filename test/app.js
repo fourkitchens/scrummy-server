@@ -218,3 +218,74 @@ test.serial.cb('Errors if game is invalid', t => {
     nickname: 'Taylor',
   }));
 });
+
+test.serial.cb('Fails to reset a game if the game doesn\'t exist', t => {
+  t.plan(1);
+  const nickname = 'Taylor';
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: data.game,
+        nickname: data.nickname,
+        vote: 3,
+      }));
+    }
+    if (data.type === 'someoneVoted') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'reset',
+        game: 'notanactualgame',
+        nickname,
+      }));
+    }
+    if (data.type === 'error') {
+      if (data.message === 'notanactualgame does not exist!') {
+        t.pass();
+        t.end();
+      } else {
+        t.fail();
+        t.end();
+      }
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});
+
+test.serial.cb('Allows a game to be reset', t => {
+  t.plan(1);
+  const nickname = 'Taylor';
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: data.game,
+        nickname: data.nickname,
+        vote: 3,
+      }));
+    }
+    if (data.type === 'someoneVoted') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'reset',
+        game,
+        nickname,
+      }));
+    }
+    if (data.type === 'reset') {
+      t.true(Object.keys(t.context.app.bucket[game].votes).length === 0);
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});

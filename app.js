@@ -25,6 +25,7 @@ class Scrummy {
     this.exposedMethods = [
       'signIn',
       'placeVote',
+      'reset',
       'reveal',
     ];
   }
@@ -171,6 +172,25 @@ class Scrummy {
       votes: this.bucket[data.game].votes,
     }), this.bucket[data.game].clients);
     logger(`${data.nickname} voted ${data.vote} in ${data.game}\n`);
+  }
+  /**
+   * reset
+   *   Resets the given game.
+   *
+   * @param {Object} data
+   *   The message from the client.
+   * @return {undefined}
+   */
+  reset(data) {
+    if (!this.bucket[data.game]) {
+      throw new Error(`${data.game} does not exist!`);
+    }
+    this.bucket[data.game].votes = {};
+    this.broadcast(JSON.stringify({
+      type: 'reset',
+      votes: this.bucket[data.game].votes,
+    }), this.bucket[data.game].clients);
+    logger(`${data.nickname} reset ${data.game}\n`);
   }
   /**
    * reveal

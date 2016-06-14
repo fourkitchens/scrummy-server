@@ -1,22 +1,29 @@
 {
-  "name": "scrummy",
+  "name": "scrummy-server",
   "version": "0.0.0",
-  "author": "Four Kitchens",
+  "author": {
+    "name": "Four Kitchens",
+    "id": 348885,
+    "url": "https://github.com/fourkitchens"
+  },
   "contributors": [
     {
-      "name" : "Taylor",
-      "email" : "taylor@fourkitchens.com",
-      "url" : "https://github.com/tsmith512"
+      "name": "Taylor",
+      "id": 1486573,
+      "email": "taylor@fourkitchens.com",
+      "url": "https://github.com/tsmith512"
     },
     {
-      "name" : "Flip",
-      "email" : "flip@fourkitchens.com",
-      "url" : "https://github.com/flipactual"
+      "name": "Flip",
+      "id": 1306968,
+      "email": "flip@fourkitchens.com",
+      "url": "https://github.com/flipactual"
     },
     {
-      "name" : "Luke",
-      "email" : "luke@fourkitchens.com",
-      "url" : "https://github.com/infiniteluke"
+      "name": "Luke",
+      "id": 1127238,
+      "email": "luke@fourkitchens.com",
+      "url": "https://github.com/infiniteluke"
     }
   ],
   "description": "♠️♣️♥️♦️",
@@ -32,7 +39,8 @@
     "lint-code": "./node_modules/.bin/eslint .",
     "lint-writing": "./node_modules/.bin/write-good *.md && ./node_modules/.bin/alex",
     "coverage": "./node_modules/.bin/nyc report --reporter=text-lcov > coverage.lcov && ./node_modules/.bin/codecov",
-    "quality": "./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/codeclimate-test-reporter"
+    "quality": "./node_modules/.bin/nyc report --reporter=text-lcov | ./node_modules/.bin/codeclimate-test-reporter",
+    "write-readme": "./node_modules/.bin/emdaer"
   },
   "nyc": {
     "exclude": [
@@ -46,6 +54,7 @@
     "babel-eslint": "^6.0.4",
     "codeclimate-test-reporter": "^0.3.1",
     "codecov": "^1.0.1",
+    "emdaer": "^0.1.1",
     "eslint": "^2.10.2",
     "eslint-config-airbnb-base": "^3.0.1",
     "eslint-plugin-ava": "^2.4.0",

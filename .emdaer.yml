@@ -1,0 +1,21 @@
+- title: true
+- shields:
+    style: 'flat-square'
+    shields:
+      - alt: 'Four Kitchens'
+        image: 'badge/4K-Four%20Kitchens-35AA4E.svg'
+        link: 'https://fourkitchens.com/'
+      - alt: 'Travis'
+        image: 'travis/fourkitchens/scrummy-server.svg'
+        link: 'https://travis-ci.org/fourkitchens/scrummy-server/'
+      - alt: Codecov
+        image: 'codecov/c/github/fourkitchens/scrummy-server.svg'
+        link: 'https://codecov.io/gh/fourkitchens/scrummy-server'
+      - alt: Code Climate
+        image: 'codeclimate/github/fourkitchens/scrummy-server.svg'
+        link: 'https://codeclimate.com/github/fourkitchens/scrummy-server'
+- include: './docs/getting-started.md'
+- include: './docs/testing.md'
+- include: './docs/usage.md'
+- contributors: true
+- license: true

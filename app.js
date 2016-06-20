@@ -27,6 +27,7 @@ class Scrummy {
       'placeVote',
       'reset',
       'reveal',
+      'revokeVote',
       'disconnect',
     ];
   }
@@ -213,7 +214,32 @@ class Scrummy {
     logger(`${data.nickname} revealed votes in ${data.game}\n`);
   }
   /**
-   * disconnect
+   * revokeVote
+   *   Revokes a vote and broadcasts change.
+   *
+   * @param {Object} data
+   *   The message from the client.
+   * @return {undefined}
+   */
+  revokeVote(data) {
+    if (!this.bucket[data.game]) {
+      throw new Error(`${data.game} does not exist!`);
+    }
+    // If user has not voted
+    if (!this.bucket[data.game].votes[data.nickname]) {
+      throw new Error(`${data.nickname} has no votes to revoke!`);
+    }
+
+    delete this.bucket[data.game].votes[data.nickname];
+
+    this.broadcast(JSON.stringify({
+      type: 'clientRevoke',
+      nickname: data.nickname,
+    }), this.bucket[data.game].clients);
+    logger(`${data.nickname} revoked his or her vote in ${data.game}\n`);
+  }
+
+  /**
    *   Disconnects a client from the given game.
    *
    * @param {Object} data

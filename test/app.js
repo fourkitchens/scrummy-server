@@ -502,3 +502,104 @@ test.serial.cb('Cleans game up after disconnected client', t => {
     nickname,
   }));
 });
+
+test.serial.cb('Allows a vote to be revoked', t => {
+  t.plan(1);
+  const nickname = 'Taylor';
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: data.game,
+        nickname,
+        vote: 3,
+      }));
+    }
+    if (data.type === 'someoneVoted') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'revokeVote',
+        game,
+        nickname,
+      }));
+    }
+    if (data.type === 'clientRevoke') {
+      t.true(data.nickname === nickname);
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});
+
+test.serial.cb('Disallows a vote to be revoked if the user hasn\'t voted', t => {
+  t.plan(1);
+  const nickname = 'Taylor';
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: data.game,
+        nickname,
+        vote: 3,
+      }));
+    }
+    if (data.type === 'someoneVoted') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'revokeVote',
+        game,
+        nickname: 'Luke',
+      }));
+    }
+    if (data.type === 'error') {
+      t.is(data.message, 'Luke has no votes to revoke!');
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});
+
+test.serial.cb('Disallows a vote to be revoked if the respective game does not exist', t => {
+  t.plan(1);
+  const nickname = 'Taylor';
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'placeVote',
+        game: data.game,
+        nickname,
+        vote: 3,
+      }));
+    }
+    if (data.type === 'someoneVoted') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'revokeVote',
+        game: 'notanactualgame',
+        nickname,
+      }));
+    }
+    if (data.type === 'error') {
+      t.is(data.message, 'notanactualgame does not exist!');
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});

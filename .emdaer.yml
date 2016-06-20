@@ -14,6 +14,12 @@
       - alt: Code Climate
         image: 'codeclimate/github/fourkitchens/scrummy-server.svg'
         link: 'https://codeclimate.com/github/fourkitchens/scrummy-server'
+      - alt: David Dependency Management
+        image: 'david/fourkitchens/scrummy-server.svg'
+        link: 'https://david-dm.org/fourkitchens/scrummy-server'
+      - alt: David Dependency Management (dev)
+        image: 'david/dev/fourkitchens/scrummy-server.svg'
+        link: 'https://david-dm.org/dev/fourkitchens/scrummy-server#info=devDependencies&view=table'
 - include: './docs/getting-started.md'
 - include: './docs/testing.md'
 - include: './docs/usage.md'

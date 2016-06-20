@@ -4,6 +4,8 @@
 [![Travis](https://img.shields.io/travis/fourkitchens/scrummy-server.svg?style=flat-square)](https://travis-ci.org/fourkitchens/scrummy-server/)
 [![Codecov](https://img.shields.io/codecov/c/github/fourkitchens/scrummy-server.svg?style=flat-square)](https://codecov.io/gh/fourkitchens/scrummy-server)
 [![Code Climate](https://img.shields.io/codeclimate/github/fourkitchens/scrummy-server.svg?style=flat-square)](https://codeclimate.com/github/fourkitchens/scrummy-server)
+[![David Dependency Management](https://img.shields.io/david/fourkitchens/scrummy-server.svg?style=flat-square)](https://david-dm.org/fourkitchens/scrummy-server)
+[![David Dependency Management (dev)](https://img.shields.io/david/dev/fourkitchens/scrummy-server.svg?style=flat-square)](https://david-dm.org/dev/fourkitchens/scrummy-server#info=devDependencies&view=table)
 
 ## Getting started
 

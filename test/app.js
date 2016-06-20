@@ -31,6 +31,7 @@ test.afterEach.always(async t => {
     }
   });
   delete t.context.app;
+  delete t.context.context;
 });
 
 test.serial.cb('Can start a new game', t => {
@@ -366,6 +367,136 @@ test.serial.cb('Allows a game to be reset', t => {
       t.end();
     }
   });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});
+
+test.serial.cb('Fails to disconnect a client if the user isn\'t a part of the game', t => {
+  t.plan(1);
+  const nickname = 'Taylor';
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[1].send(JSON.stringify({
+        type: 'disconnect',
+        game: data.game,
+        nickname: 'notauser',
+      }));
+    }
+  });
+
+  t.context.sockets[1].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.type === 'error') {
+      if (data.message === `notauser is not a part of ${game}!`) {
+        t.pass();
+        t.end();
+      } else {
+        t.fail();
+        t.end();
+      }
+    }
+  });
+
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});
+
+test.serial.cb('Fails to disconnect a client if a game doesn\'t exist', t => {
+  t.plan(1);
+  const nickname = 'Taylor';
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[1].send(JSON.stringify({
+        type: 'signIn',
+        nickname: 'flip',
+        game,
+      }));
+    }
+    if (data.type === 'someoneSignedIn') {
+      if (data.nickname === 'flip') {
+        t.context.sockets[1].send(JSON.stringify({
+          type: 'disconnect',
+          game: 'notanactualgame',
+          nickname: 'flip',
+        }));
+      }
+    }
+  });
+  t.context.sockets[1].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.type === 'error') {
+      if (data.message === 'notanactualgame does not exist!') {
+        t.pass();
+        t.end();
+      } else {
+        t.fail();
+        t.end();
+      }
+    }
+  });
+
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    nickname,
+  }));
+});
+
+test.serial.cb('Cleans game up after disconnected client', t => {
+  t.plan(3);
+  const nickname = 'Taylor';
+  let game;
+  t.context.sockets[0].on('message', response => {
+    const data = JSON.parse(response);
+    if (data.game) {
+      game = data.game;
+    }
+    if (data.type === 'youSignedIn') {
+      t.context.sockets[1].send(JSON.stringify({
+        type: 'signIn',
+        nickname: 'flip',
+        game,
+      }));
+    }
+    if (data.type === 'someoneSignedIn') {
+      if (data.nickname === 'flip') {
+        t.context.sockets[1].send(JSON.stringify({
+          type: 'placeVote',
+          game,
+          nickname: 'flip',
+          vote: 3,
+        }));
+      }
+    }
+    if (data.type === 'someoneVoted') {
+      t.context.sockets[1].send(JSON.stringify({
+        type: 'disconnect',
+        game,
+        nickname: 'flip',
+      }));
+    }
+
+    if (data.type === 'clientDisconnect') {
+      t.true(t.context.app.bucket[game].clients.length === 1);
+      t.true(t.context.app.bucket[game].users.length === 1);
+      t.true(!('flip' in t.context.app.bucket[game].votes));
+      t.end();
+    }
+  });
+
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
     nickname,

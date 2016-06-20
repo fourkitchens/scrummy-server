@@ -27,6 +27,7 @@ class Scrummy {
       'placeVote',
       'reset',
       'reveal',
+      'disconnect',
     ];
   }
   /**
@@ -210,6 +211,37 @@ class Scrummy {
     }
     this.broadcast(JSON.stringify({ type: 'reveal' }), this.bucket[data.game].clients);
     logger(`${data.nickname} revealed votes in ${data.game}\n`);
+  }
+  /**
+   * disconnect
+   *   Disconnects a client from the given game.
+   *
+   * @param {Object} data
+   *   The message from the client.
+   * @return {undefined}
+   */
+  disconnect(data) {
+    if (!this.bucket[data.game]) {
+      throw new Error(`${data.game} does not exist!`);
+    }
+    // If user isn't a part of the game
+    if (!this.bucket[data.game].users.filter(user => user.nickname === data.nickname).length) {
+      throw new Error(`${data.nickname} is not a part of ${data.game}!`);
+    }
+    // Filter out the user that disconnected from the user list.
+    this.bucket[data.game].users = this.bucket[data.game].users
+      .filter(user => user.nickname !== data.nickname);
+    // Filter out the client reference for the user that disconnected from the user list.
+    this.bucket[data.game].clients = this.bucket[data.game].clients
+      .filter(user => user.nickname !== data.nickname);
+    // Remove any votes cast by disconnected user.
+    delete this.bucket[data.game].votes[data.nickname];
+
+    this.broadcast(JSON.stringify({
+      type: 'clientDisconnect',
+      nickname: data.nickname,
+    }), this.bucket[data.game].clients);
+    logger(`${data.nickname} disconnected\n`);
   }
 }
 

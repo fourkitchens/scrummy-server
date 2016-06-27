@@ -23,5 +23,6 @@
 - include: './docs/getting-started.md'
 - include: './docs/testing.md'
 - include: './docs/usage.md'
+- jsdoc: 'app.js'
 - contributors: true
 - license: true

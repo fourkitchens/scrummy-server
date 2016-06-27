@@ -33,10 +33,10 @@ class Scrummy {
   }
   /**
    * setupMessageHandling
-   *   Sets up listeners for messages once a connection to the websocket server has been made.
+   *   Sets up listeners for messages once a connection to the websocket server exists.
    *
-   *   If the message type is one of the exposed methods, it is executed with the parsed message and
-   *   the websocket as arguments. Otherwise, the message is rejected.
+   *   If the message type is one of the exposed methods, said method executes with the parsed
+   *   message and the websocket as arguments. Otherwise, the message gets rejected.
    *
    * @return {undefined}
    */

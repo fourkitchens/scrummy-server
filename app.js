@@ -44,16 +44,16 @@ class Scrummy {
     this.wss.on('connection', ws => {
       ws.on('message', message => {
         logger(`received message: ${message}\n`);
-        const data = JSON.parse(message);
-        if (this.exposedMethods.includes(data.type)) {
+        const msg = JSON.parse(message);
+        if (this.exposedMethods.includes(msg.type)) {
           try {
-            logger(`performing: ${data.type}\n`);
-            this[data.type](data, ws);
+            logger(`performing: ${msg.type}\n`);
+            this[msg.type](msg.data, ws);
           } catch (e) {
             this.handleError(e.message, ws);
           }
         } else {
-          this.handleError(`${data.type} is not a message type Scrummy is prepared for!`, ws);
+          this.handleError(`${msg.type} is not a message type Scrummy is prepared for!`, ws);
         }
       });
     });
@@ -94,7 +94,7 @@ class Scrummy {
     logger(`${message}\n`);
     ws.send(JSON.stringify({
       type: 'error',
-      message,
+      data: { message },
     }));
   }
   /**
@@ -136,15 +136,19 @@ class Scrummy {
     });
     ws.send(JSON.stringify({
       type: 'youSignedIn',
-      nickname,
-      points: config.get('points'),
-      users: this.bucket[requestedGame].users,
-      game: requestedGame,
+      data: {
+        nickname,
+        points: config.get('points'),
+        users: this.bucket[requestedGame].users,
+        game: requestedGame,
+      },
     }));
     this.broadcast(JSON.stringify({
       type: 'someoneSignedIn',
-      nickname,
-      users: this.bucket[requestedGame].users,
+      data: {
+        nickname,
+        users: this.bucket[requestedGame].users,
+      },
     }), this.bucket[requestedGame].clients);
     logger(`added user ${nickname} to ${requestedGame}\n`);
   }
@@ -171,7 +175,7 @@ class Scrummy {
     }));
     this.broadcast(JSON.stringify({
       type: 'someoneVoted',
-      votes: this.bucket[data.game].votes,
+      data: { votes: this.bucket[data.game].votes },
     }), this.bucket[data.game].clients);
     logger(`${data.nickname} voted ${data.vote} in ${data.game}\n`);
   }
@@ -190,7 +194,7 @@ class Scrummy {
     this.bucket[data.game].votes = {};
     this.broadcast(JSON.stringify({
       type: 'reset',
-      votes: this.bucket[data.game].votes,
+      data: { votes: this.bucket[data.game].votes },
     }), this.bucket[data.game].clients);
     logger(`${data.nickname} reset ${data.game}\n`);
   }
@@ -234,7 +238,7 @@ class Scrummy {
 
     this.broadcast(JSON.stringify({
       type: 'clientRevoke',
-      nickname: data.nickname,
+      data: { nickname: data.nickname },
     }), this.bucket[data.game].clients);
     logger(`${data.nickname} revoked his or her vote in ${data.game}\n`);
   }
@@ -265,7 +269,7 @@ class Scrummy {
 
     this.broadcast(JSON.stringify({
       type: 'clientDisconnect',
-      nickname: data.nickname,
+      data: { nickname: data.nickname },
     }), this.bucket[data.game].clients);
     logger(`${data.nickname} disconnected\n`);
   }

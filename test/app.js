@@ -2,6 +2,7 @@ const config = require('config');
 const test = require('ava');
 const WebSocket = require('ws');
 const Scrummy = require('../app.js');
+const _ = require('lodash');
 
 const avengers = [
   'Hank Pym',
@@ -38,14 +39,16 @@ test.serial.cb('Can start a new game', t => {
   t.plan(3);
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    game: '',
-    nickname: 'Taylor',
+    data: {
+      game: '',
+      nickname: 'Taylor',
+    },
   }));
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    t.deepEqual(data.points, config.get('points'));
-    t.truthy(config.get('words').includes(data.game));
-    t.is(data.users[0].nickname, 'taylor');
+    const resp = JSON.parse(response);
+    t.deepEqual(resp.data.points, config.get('points'));
+    t.truthy(config.get('words').includes(_.get(resp, 'data.game')));
+    t.is(resp.data.users[0].nickname, 'taylor');
     t.end();
   });
 });
@@ -55,15 +58,17 @@ test.serial.cb('Accepts multiple users in a single room', t => {
   avengers.forEach((nickname, index) => {
     t.context.sockets[index].send(JSON.stringify({
       type: 'signIn',
-      game: 'Avengers',
-      nickname,
+      data: {
+        game: 'Avengers',
+        nickname,
+      },
     }));
   });
   t.context.sockets[5].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'someoneSignedIn') {
+    const resp = JSON.parse(response);
+    if (resp.type === 'someoneSignedIn') {
       const lowerCaseAvengers = avengers.map(avenger => avenger.toLowerCase());
-      data.users.map(user => user.nickname).forEach(nickname => {
+      resp.data.users.map(user => user.nickname).forEach(nickname => {
         t.truthy(lowerCaseAvengers.includes(nickname));
       });
       t.end();
@@ -75,18 +80,22 @@ test.serial.cb('Supports multiple rooms independently', t => {
   t.plan(14);
   avengers.forEach((nickname, index) => t.context.sockets[index].send(JSON.stringify({
     type: 'signIn',
-    game: 'Avengers',
-    nickname,
+    data: {
+      game: 'Avengers',
+      nickname,
+    },
   })));
   t.context.sockets[7].send(JSON.stringify({
     type: 'signIn',
-    game: 'Characters I Will Never Like',
-    nickname: 'Spiderman',
+    data: {
+      game: 'Characters I Will Never Like',
+      nickname: 'Spiderman',
+    },
   }));
   t.context.sockets[7].on('message', response => {
-    const data = JSON.parse(response);
+    const resp = JSON.parse(response);
     const bucket = t.context.app.bucket;
-    if (data.type === 'someoneSignedIn') {
+    if (resp.type === 'someoneSignedIn') {
       t.is(bucket['characters i will never like'].users[0].nickname, 'spiderman');
       t.is(bucket['characters i will never like'].users[0].game, 'characters i will never like');
       const lowerCaseAvengers = avengers.map(avenger => avenger.toLowerCase());
@@ -105,17 +114,21 @@ test.serial.cb('Won\'t let a duplicate nickname in', t => {
   t.plan(1);
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    game: 'asdf',
-    nickname: 'Taylor',
+    data: {
+      game: 'asdf',
+      nickname: 'Taylor',
+    },
   }));
   t.context.sockets[1].send(JSON.stringify({
     type: 'signIn',
-    game: 'asdf',
-    nickname: 'Taylor',
+    data: {
+      game: 'asdf',
+      nickname: 'Taylor',
+    },
   }));
   t.context.sockets[1].on('message', response => {
-    const data = JSON.parse(response);
-    t.is(data.message, 'This username is unavailable; please pick another.');
+    const resp = JSON.parse(response);
+    t.is(resp.data.message, 'This username is unavailable; please pick another.');
     t.end();
   });
 });
@@ -126,8 +139,8 @@ test.serial.cb('Responds politely when the message is junk', t => {
     type: 'HAHAHAHAHEYTHERE',
   }));
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    t.is(data.message, 'HAHAHAHAHEYTHERE is not a message type Scrummy is prepared for!');
+    const resp = JSON.parse(response);
+    t.is(resp.data.message, 'HAHAHAHAHEYTHERE is not a message type Scrummy is prepared for!');
     t.end();
   });
 });
@@ -136,19 +149,21 @@ test.serial.cb('Allows user to vote', t => {
   t.plan(1);
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: data.game,
-        nickname: data.nickname,
-        vote: 1,
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname: resp.data.nickname,
+          vote: 1,
+        },
       }));
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       if (t.context.app.bucket[game].votes.taylor === 1) {
         t.pass();
         t.end();
@@ -160,7 +175,7 @@ test.serial.cb('Allows user to vote', t => {
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname: 'Taylor',
+    data: { nickname: 'Taylor' },
   }));
 });
 
@@ -168,47 +183,51 @@ test.serial.cb('Fails on reveal if there are no votes for the given game', t => 
   t.plan(1);
   let nickname;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.nickname) {
-      nickname = data.nickname;
+    const resp = JSON.parse(response);
+    if (resp.data.nickname) {
+      nickname = resp.data.nickname;
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'reveal',
-        game: data.game,
-        nickname: data.nickname,
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname: resp.data.nickname,
+        },
       }));
     }
-    if (data.type === 'error') {
-      t.is(data.message, `${nickname} has no votes to reveal!`);
+    if (resp.type === 'error') {
+      t.is(resp.data.message, `${nickname} has no votes to reveal!`);
       t.end();
     }
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname: 'Taylor',
+    data: { nickname: 'Taylor' },
   }));
 });
 
 test.serial.cb('Fails on reveal if game doesn\'t exist', t => {
   t.plan(1);
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'youSignedIn') {
+    const resp = JSON.parse(response);
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'reveal',
-        game: 'notagame',
-        nickname: data.nickname,
+        data: {
+          game: 'notagame',
+          nickname: resp.data.nickname,
+        },
       }));
     }
-    if (data.type === 'error') {
-      t.is(data.message, 'notagame does not exist!');
+    if (resp.type === 'error') {
+      t.is(resp.data.message, 'notagame does not exist!');
       t.end();
     }
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname: 'Taylor',
+    data: { nickname: 'Taylor' },
   }));
 });
 
@@ -216,50 +235,56 @@ test.serial.cb('Allows user to reveal votes', t => {
   t.plan(1);
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game,
-        nickname: data.nickname,
-        vote: 1,
+        data: {
+          game,
+          nickname: resp.data.nickname,
+          vote: 1,
+        },
       }));
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'reveal',
-        game,
-        nickname: data.nickname,
+        data: {
+          game,
+          nickname: resp.data.nickname,
+        },
       }));
     }
-    if (data.type === 'reveal') {
+    if (resp.type === 'reveal') {
       t.pass();
       t.end();
     }
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname: 'Taylor',
+    data: { nickname: 'Taylor' },
   }));
 });
 
 test.serial.cb('Errors if vote is invalid', t => {
   t.plan(1);
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'youSignedIn') {
+    const resp = JSON.parse(response);
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: data.game,
-        nickname: data.nickname,
-        vote: '🍰',
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname: resp.data.nickname,
+          vote: '🍰',
+        },
       }));
     }
-    if (data.type === 'error') {
-      if (data.message === '🍰 is not a valid vote!') {
+    if (resp.type === 'error') {
+      if (resp.data.message === '🍰 is not a valid vote!') {
         t.pass();
         t.end();
       } else {
@@ -270,24 +295,26 @@ test.serial.cb('Errors if vote is invalid', t => {
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname: 'Taylor',
+    data: { nickname: 'Taylor' },
   }));
 });
 
 test.serial.cb('Errors if game is invalid', t => {
   t.plan(1);
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'youSignedIn') {
+    const resp = JSON.parse(response);
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: 'sandwich',
-        nickname: data.nickname,
-        vote: 5,
+        data: {
+          game: 'sandwich',
+          nickname: resp.data.nickname,
+          vote: 5,
+        },
       }));
     }
-    if (data.type === 'error') {
-      if (data.message === 'sandwich does not exist!') {
+    if (resp.type === 'error') {
+      if (resp.data.message === 'sandwich does not exist!') {
         t.pass();
         t.end();
       } else {
@@ -298,7 +325,7 @@ test.serial.cb('Errors if game is invalid', t => {
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname: 'Taylor',
+    data: { nickname: 'Taylor' },
   }));
 });
 
@@ -306,24 +333,28 @@ test.serial.cb('Fails to reset a game if the game doesn\'t exist', t => {
   t.plan(1);
   const nickname = 'Taylor';
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'youSignedIn') {
+    const resp = JSON.parse(response);
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: data.game,
-        nickname: data.nickname,
-        vote: 3,
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname: resp.data.nickname,
+          vote: 3,
+        },
       }));
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'reset',
-        game: 'notanactualgame',
-        nickname,
+        data: {
+          game: 'notanactualgame',
+          nickname,
+        },
       }));
     }
-    if (data.type === 'error') {
-      if (data.message === 'notanactualgame does not exist!') {
+    if (resp.type === 'error') {
+      if (resp.data.message === 'notanactualgame does not exist!') {
         t.pass();
         t.end();
       } else {
@@ -334,7 +365,7 @@ test.serial.cb('Fails to reset a game if the game doesn\'t exist', t => {
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });
 
@@ -343,33 +374,37 @@ test.serial.cb('Allows a game to be reset', t => {
   const nickname = 'Taylor';
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: data.game,
-        nickname: data.nickname,
-        vote: 3,
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname: resp.data.nickname,
+          vote: 3,
+        },
       }));
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'reset',
-        game,
-        nickname,
+        data: {
+          game,
+          nickname,
+        },
       }));
     }
-    if (data.type === 'reset') {
+    if (resp.type === 'reset') {
       t.true(Object.keys(t.context.app.bucket[game].votes).length === 0);
       t.end();
     }
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });
 
@@ -378,23 +413,25 @@ test.serial.cb('Fails to disconnect a client if the user isn\'t a part of the ga
   const nickname = 'Taylor';
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[1].send(JSON.stringify({
         type: 'disconnect',
-        game: data.game,
-        nickname: 'notauser',
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname: 'notauser',
+        },
       }));
     }
   });
 
   t.context.sockets[1].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'error') {
-      if (data.message === `notauser is not a part of ${game}!`) {
+    const resp = JSON.parse(response);
+    if (resp.type === 'error') {
+      if (resp.data.message === `notauser is not a part of ${game}!`) {
         t.pass();
         t.end();
       } else {
@@ -406,7 +443,7 @@ test.serial.cb('Fails to disconnect a client if the user isn\'t a part of the ga
 
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });
 
@@ -415,31 +452,35 @@ test.serial.cb('Fails to disconnect a client if a game doesn\'t exist', t => {
   const nickname = 'Taylor';
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[1].send(JSON.stringify({
         type: 'signIn',
-        nickname: 'flip',
-        game,
+        data: {
+          nickname: 'flip',
+          game,
+        },
       }));
     }
-    if (data.type === 'someoneSignedIn') {
-      if (data.nickname === 'flip') {
+    if (resp.type === 'someoneSignedIn') {
+      if (resp.data.nickname === 'flip') {
         t.context.sockets[1].send(JSON.stringify({
           type: 'disconnect',
-          game: 'notanactualgame',
-          nickname: 'flip',
+          data: {
+            game: 'notanactualgame',
+            nickname: 'flip',
+          },
         }));
       }
     }
   });
   t.context.sockets[1].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'error') {
-      if (data.message === 'notanactualgame does not exist!') {
+    const resp = JSON.parse(response);
+    if (resp.type === 'error') {
+      if (resp.data.message === 'notanactualgame does not exist!') {
         t.pass();
         t.end();
       } else {
@@ -451,7 +492,7 @@ test.serial.cb('Fails to disconnect a client if a game doesn\'t exist', t => {
 
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });
 
@@ -460,36 +501,42 @@ test.serial.cb('Cleans game up after disconnected client', t => {
   const nickname = 'Taylor';
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[1].send(JSON.stringify({
         type: 'signIn',
-        nickname: 'flip',
-        game,
+        data: {
+          nickname: 'flip',
+          game,
+        },
       }));
     }
-    if (data.type === 'someoneSignedIn') {
-      if (data.nickname === 'flip') {
+    if (resp.type === 'someoneSignedIn') {
+      if (resp.data.nickname === 'flip') {
         t.context.sockets[1].send(JSON.stringify({
           type: 'placeVote',
-          game,
-          nickname: 'flip',
-          vote: 3,
+          data: {
+            game,
+            nickname: 'flip',
+            vote: 3,
+          },
         }));
       }
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       t.context.sockets[1].send(JSON.stringify({
         type: 'disconnect',
-        game,
-        nickname: 'flip',
+        data: {
+          game,
+          nickname: 'flip',
+        },
       }));
     }
 
-    if (data.type === 'clientDisconnect') {
+    if (resp.type === 'clientDisconnect') {
       t.true(t.context.app.bucket[game].clients.length === 1);
       t.true(t.context.app.bucket[game].users.length === 1);
       t.true(!('flip' in t.context.app.bucket[game].votes));
@@ -499,7 +546,7 @@ test.serial.cb('Cleans game up after disconnected client', t => {
 
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });
 
@@ -508,33 +555,37 @@ test.serial.cb('Allows a vote to be revoked', t => {
   const nickname = 'Taylor';
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: data.game,
-        nickname,
-        vote: 3,
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname,
+          vote: 3,
+        },
       }));
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'revokeVote',
-        game,
-        nickname,
+        data: {
+          game,
+          nickname,
+        },
       }));
     }
-    if (data.type === 'clientRevoke') {
-      t.true(data.nickname === nickname);
+    if (resp.type === 'clientRevoke') {
+      t.true(resp.data.nickname === nickname);
       t.end();
     }
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });
 
@@ -543,33 +594,37 @@ test.serial.cb('Disallows a vote to be revoked if the user hasn\'t voted', t => 
   const nickname = 'Taylor';
   let game;
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.game) {
-      game = data.game;
+    const resp = JSON.parse(response);
+    if (_.get(resp, 'data.game')) {
+      game = _.get(resp, 'data.game');
     }
-    if (data.type === 'youSignedIn') {
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: data.game,
-        nickname,
-        vote: 3,
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname,
+          vote: 3,
+        },
       }));
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'revokeVote',
-        game,
-        nickname: 'Luke',
+        data: {
+          game,
+          nickname: 'Luke',
+        },
       }));
     }
-    if (data.type === 'error') {
-      t.is(data.message, 'Luke has no votes to revoke!');
+    if (resp.type === 'error') {
+      t.is(resp.data.message, 'Luke has no votes to revoke!');
       t.end();
     }
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });
 
@@ -577,29 +632,33 @@ test.serial.cb('Disallows a vote to be revoked if the respective game does not e
   t.plan(1);
   const nickname = 'Taylor';
   t.context.sockets[0].on('message', response => {
-    const data = JSON.parse(response);
-    if (data.type === 'youSignedIn') {
+    const resp = JSON.parse(response);
+    if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'placeVote',
-        game: data.game,
-        nickname,
-        vote: 3,
+        data: {
+          game: _.get(resp, 'data.game'),
+          nickname,
+          vote: 3,
+        },
       }));
     }
-    if (data.type === 'someoneVoted') {
+    if (resp.type === 'someoneVoted') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'revokeVote',
-        game: 'notanactualgame',
-        nickname,
+        data: {
+          game: 'notanactualgame',
+          nickname,
+        },
       }));
     }
-    if (data.type === 'error') {
-      t.is(data.message, 'notanactualgame does not exist!');
+    if (resp.type === 'error') {
+      t.is(resp.data.message, 'notanactualgame does not exist!');
       t.end();
     }
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    nickname,
+    data: { nickname },
   }));
 });

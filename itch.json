@@ -1,9 +1,0 @@
-{
-  "files": {
-    "included": [
-      "app.js"
-      "lib/**/*.js"
-      "util/**/*.js"
-    ]
-  }
-}

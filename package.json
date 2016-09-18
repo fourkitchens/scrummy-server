@@ -44,26 +44,28 @@
   },
   "nyc": {
     "exclude": [
+      "node_modules",
       "test",
       "**/_*.js"
     ]
   },
   "devDependencies": {
-    "alex": "^3.1.0",
-    "ava": "^0.15.2",
+    "alex": "^4.0.1",
     "babel-eslint": "^6.1.2",
     "codeclimate-test-reporter": "^0.3.3",
     "codecov": "^1.0.1",
     "emdaer": "^0.3.2",
-    "eslint": "^2.13.1",
-    "eslint-config-airbnb-base": "^3.0.1",
-    "eslint-plugin-ava": "^2.5.0",
+    "eslint": "^3.5.0",
+    "eslint-config-airbnb-base": "^7.1.0",
+    "eslint-plugin-ava": "^3.0.0",
     "eslint-plugin-import": "^1.13.0",
-    "nyc": "^6.6.1",
+    "nyc": "^8.3.0",
     "write-good": "^0.9.1"
   },
   "dependencies": {
+    "ava": "^0.16.0",
     "config": "^1.21.0",
+    "lodash": "^4.15.0",
     "ws": "^1.1.1"
   }
 }

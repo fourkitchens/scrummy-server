@@ -41,8 +41,8 @@ class Scrummy {
    * @return {undefined}
    */
   setupMessageHandling() {
-    this.wss.on('connection', ws => {
-      ws.on('message', message => {
+    this.wss.on('connection', (ws) => {
+      ws.on('message', (message) => {
         logger(`received message: ${message}\n`);
         const msg = JSON.parse(message);
         if (this.exposedMethods.includes(msg.type)) {
@@ -50,10 +50,10 @@ class Scrummy {
             logger(`performing: ${msg.type}\n`);
             this[msg.type](msg.data, ws);
           } catch (e) {
-            this.handleError(e.message, ws);
+            Scrummy.handleError(e.message, ws);
           }
         } else {
-          this.handleError(`${msg.type} is not a message type Scrummy is prepared for!`, ws);
+          Scrummy.handleError(`${msg.type} is not a message type Scrummy is prepared for!`, ws);
         }
       });
     });
@@ -77,7 +77,7 @@ class Scrummy {
    *   The clients to send the message to.
    * @return {undefined}
    */
-  broadcast(data, clients) {
+  static broadcast(data, clients) {
     clients.forEach(client => client.ws.send(data));
   }
   /**
@@ -90,7 +90,7 @@ class Scrummy {
    *   The client to send the message to.
    * @return {undefined}
    */
-  handleError(message, ws) {
+  static handleError(message, ws) {
     logger(`${message}\n`);
     ws.send(JSON.stringify({
       type: 'error',
@@ -143,7 +143,7 @@ class Scrummy {
         game: requestedGame,
       },
     }));
-    this.broadcast(JSON.stringify({
+    Scrummy.broadcast(JSON.stringify({
       type: 'someoneSignedIn',
       data: {
         nickname,
@@ -173,7 +173,7 @@ class Scrummy {
     ws.send(JSON.stringify({
       type: 'youVoted',
     }));
-    this.broadcast(JSON.stringify({
+    Scrummy.broadcast(JSON.stringify({
       type: 'someoneVoted',
       data: { votes: this.bucket[data.game].votes },
     }), this.bucket[data.game].clients);
@@ -192,7 +192,7 @@ class Scrummy {
       throw new Error(`${data.game} does not exist!`);
     }
     this.bucket[data.game].votes = {};
-    this.broadcast(JSON.stringify({
+    Scrummy.broadcast(JSON.stringify({
       type: 'reset',
       data: { votes: this.bucket[data.game].votes },
     }), this.bucket[data.game].clients);
@@ -214,7 +214,7 @@ class Scrummy {
     if (Object.keys(this.bucket[data.game].votes).length < 1) {
       throw new Error(`${data.nickname} has no votes to reveal!`);
     }
-    this.broadcast(JSON.stringify({ type: 'reveal' }), this.bucket[data.game].clients);
+    Scrummy.broadcast(JSON.stringify({ type: 'reveal' }), this.bucket[data.game].clients);
     logger(`${data.nickname} revealed votes in ${data.game}\n`);
   }
   /**
@@ -236,7 +236,7 @@ class Scrummy {
 
     delete this.bucket[data.game].votes[data.nickname];
 
-    this.broadcast(JSON.stringify({
+    Scrummy.broadcast(JSON.stringify({
       type: 'clientRevoke',
       data: { nickname: data.nickname },
     }), this.bucket[data.game].clients);
@@ -267,7 +267,7 @@ class Scrummy {
     // Remove any votes cast by disconnected user.
     delete this.bucket[data.game].votes[data.nickname];
 
-    this.broadcast(JSON.stringify({
+    Scrummy.broadcast(JSON.stringify({
       type: 'clientDisconnect',
       data: { nickname: data.nickname },
     }), this.bucket[data.game].clients);

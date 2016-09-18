@@ -13,7 +13,8 @@ function generateGameName(existingGameNames) {
   let result;
   let i = 0;
   while (!result || existingGameNames.includes(result)) {
-    result = i++ < 5
+    i += 1;
+    result = i < 5
       ? config.words[Math.floor(Math.random() * config.words.length)]
       : Math.floor(Math.random() * 100000);
   }

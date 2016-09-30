@@ -2,7 +2,11 @@ const config = require('config');
 const server = require('./server');
 
 const logger = require('./util/_logger');
-const generateGameName = require('./util/generateGameName');
+
+const User = require('./lib/User');
+const Game = require('./lib/Game');
+
+const gameNameGenerator = require('./util/gameNameGenerator');
 const getFormattedEntityName = require('./util/getFormattedEntityName');
 const getUniqueFormattedEntityName = require('./util/getUniqueFormattedEntityName');
 
@@ -20,16 +24,9 @@ class Scrummy {
   constructor() {
     this.wss = server(config.get('port'));
     this.points = config.get('points');
-    this.bucket = {};
+    this.bucket = new Map();
     this.setupMessageHandling();
-    this.exposedMethods = [
-      'signIn',
-      'placeVote',
-      'reset',
-      'reveal',
-      'revokeVote',
-      'disconnect',
-    ];
+    this.gameNameGenerator = gameNameGenerator();
   }
   /**
    * setupMessageHandling
@@ -44,16 +41,16 @@ class Scrummy {
     this.wss.on('connection', (ws) => {
       ws.on('message', (message) => {
         logger(`received message: ${message}\n`);
-        const msg = JSON.parse(message);
-        if (this.exposedMethods.includes(msg.type)) {
+        const { data, type } = JSON.parse(message);
+        if (Scrummy.EXPOSED_METHODS.includes(type)) {
           try {
-            logger(`performing: ${msg.type}\n`);
-            this[msg.type](msg.data, ws);
-          } catch (e) {
-            Scrummy.handleError(e.message, ws);
+            logger(`performing: ${type}\n`);
+            this[type](data, ws);
+          } catch ({ message: errorMessage }) {
+            Scrummy.handleError(errorMessage, ws);
           }
         } else {
-          Scrummy.handleError(`${msg.type} is not a message type Scrummy is prepared for!`, ws);
+          Scrummy.handleError(`${type} is not a message type Scrummy is prepared for!`, ws);
         }
       });
     });
@@ -66,19 +63,6 @@ class Scrummy {
    */
   shutdown() {
     this.wss.close();
-  }
-  /**
-   * broadcast
-   *   Sends the provided message to all matching clients.
-   *
-   * @param {String} data
-   *   The message to send.
-   * @param {Array} clients
-   *   The clients to send the message to.
-   * @return {undefined}
-   */
-  static broadcast(data, clients) {
-    clients.forEach(client => client.ws.send(data));
   }
   /**
    * handleError
@@ -109,48 +93,41 @@ class Scrummy {
    */
   signIn(data, ws) {
     const requestedGame = getFormattedEntityName(data.game)
-      || generateGameName(Object.keys(this.bucket));
-    if (typeof this.bucket[requestedGame] === 'undefined') {
-      this.bucket[requestedGame] = {
-        clients: [],
-        users: [],
-        votes: {},
-      };
+      || this.gameNameGenerator.next().value;
+    if (!this.bucket.has(requestedGame)) {
+      this.bucket.set(requestedGame, new Game({ name: requestedGame }));
       logger(`created game: ${requestedGame}\n`);
     }
+    const game = this.bucket.get(requestedGame);
     const nickname = getUniqueFormattedEntityName(
       data.nickname,
-      this.bucket[requestedGame].users.map(user => user.nickname)
+      game.users.map(user => user.nickname)
     );
     if (!nickname) {
       throw new Error('This username is unavailable; please pick another.');
     }
-    this.bucket[requestedGame].clients.push({
+    game.addUser(new User({
+      game: game.name,
       nickname,
-      game: requestedGame,
       ws,
-    });
-    this.bucket[requestedGame].users.push({
-      nickname,
-      game: requestedGame,
-    });
+    }));
     ws.send(JSON.stringify({
       type: 'youSignedIn',
       data: {
         nickname,
         points: config.get('points'),
-        users: this.bucket[requestedGame].users,
-        game: requestedGame,
+        game: game.name,
+        users: game.users,
       },
     }));
-    Scrummy.broadcast(JSON.stringify({
+    game.broadcast(JSON.stringify({
       type: 'someoneSignedIn',
       data: {
         nickname,
-        users: this.bucket[requestedGame].users,
+        users: game.users,
       },
-    }), this.bucket[requestedGame].clients);
-    logger(`added user ${nickname} to ${requestedGame}\n`);
+    }));
+    logger(`added user ${nickname} to ${game.name}\n`);
   }
   /**
    * placeVote
@@ -162,22 +139,23 @@ class Scrummy {
    *   The websocket to respond to.
    * @return {undefined}
    */
-  placeVote(data, ws) {
-    if (!this.bucket[data.game]) {
-      throw new Error(`${data.game} does not exist!`);
+  placeVote({ game: gameId, nickname, vote }, ws) {
+    const game = this.bucket.get(gameId);
+    if (!game) {
+      throw new Error(`${gameId} does not exist!`);
     }
-    if (!this.points.includes(data.vote.toString())) {
-      throw new Error(`${data.vote} is not a valid vote!`);
+    if (!this.points.includes(vote.toString())) {
+      throw new Error(`${vote} is not a valid vote!`);
     }
-    this.bucket[data.game].votes[data.nickname] = data.vote;
+    game.votes[nickname] = vote;
     ws.send(JSON.stringify({
       type: 'youVoted',
     }));
-    Scrummy.broadcast(JSON.stringify({
+    game.broadcast(JSON.stringify({
       type: 'someoneVoted',
-      data: { votes: this.bucket[data.game].votes },
-    }), this.bucket[data.game].clients);
-    logger(`${data.nickname} voted ${data.vote} in ${data.game}\n`);
+      data: { votes: game.votes },
+    }));
+    logger(`${nickname} voted ${vote} in ${gameId}\n`);
   }
   /**
    * reset
@@ -187,16 +165,17 @@ class Scrummy {
    *   The message from the client.
    * @return {undefined}
    */
-  reset(data) {
-    if (!this.bucket[data.game]) {
-      throw new Error(`${data.game} does not exist!`);
+  reset({ game: gameId, nickname }) {
+    const game = this.bucket.get(gameId);
+    if (!game) {
+      throw new Error(`${gameId} does not exist!`);
     }
-    this.bucket[data.game].votes = {};
-    Scrummy.broadcast(JSON.stringify({
+    game.votes = {};
+    game.broadcast(JSON.stringify({
       type: 'reset',
-      data: { votes: this.bucket[data.game].votes },
-    }), this.bucket[data.game].clients);
-    logger(`${data.nickname} reset ${data.game}\n`);
+      data: { votes: game.votes },
+    }));
+    logger(`${nickname} reset ${game}\n`);
   }
   /**
    * reveal
@@ -206,16 +185,17 @@ class Scrummy {
    *   The message from the client.
    * @return {undefined}
    */
-  reveal(data) {
-    if (!this.bucket[data.game]) {
-      throw new Error(`${data.game} does not exist!`);
+  reveal({ game: gameId, nickname }) {
+    const game = this.bucket.get(gameId);
+    if (!game) {
+      throw new Error(`${gameId} does not exist!`);
     }
     // If game has no votes
-    if (Object.keys(this.bucket[data.game].votes).length < 1) {
-      throw new Error(`${data.nickname} has no votes to reveal!`);
+    if (Object.keys(game.votes).length < 1) {
+      throw new Error(`${nickname} has no votes to reveal!`);
     }
-    Scrummy.broadcast(JSON.stringify({ type: 'reveal' }), this.bucket[data.game].clients);
-    logger(`${data.nickname} revealed votes in ${data.game}\n`);
+    game.broadcast(JSON.stringify({ type: 'reveal' }));
+    logger(`${nickname} revealed votes in ${gameId}\n`);
   }
   /**
    * revokeVote
@@ -225,24 +205,18 @@ class Scrummy {
    *   The message from the client.
    * @return {undefined}
    */
-  revokeVote(data) {
-    if (!this.bucket[data.game]) {
-      throw new Error(`${data.game} does not exist!`);
+  revokeVote({ game: gameId, nickname }) {
+    const game = this.bucket.get(gameId);
+    if (!game) {
+      throw new Error(`${gameId} does not exist!`);
     }
     // If user has not voted
-    if (!this.bucket[data.game].votes[data.nickname]) {
-      throw new Error(`${data.nickname} has no votes to revoke!`);
+    if (!game.votes[nickname]) {
+      throw new Error(`${nickname} has no votes to revoke!`);
     }
-
-    delete this.bucket[data.game].votes[data.nickname];
-
-    Scrummy.broadcast(JSON.stringify({
-      type: 'clientRevoke',
-      data: { nickname: data.nickname },
-    }), this.bucket[data.game].clients);
-    logger(`${data.nickname} revoked his or her vote in ${data.game}\n`);
+    game.revokeVote({ nickname });
+    logger(`${nickname} revoked his or her vote in ${gameId}\n`);
   }
-
   /**
    *   Disconnects a client from the given game.
    *
@@ -250,29 +224,43 @@ class Scrummy {
    *   The message from the client.
    * @return {undefined}
    */
-  disconnect(data) {
-    if (!this.bucket[data.game]) {
-      throw new Error(`${data.game} does not exist!`);
+  disconnect({ game: gameId, nickname }) {
+    const game = this.bucket.get(gameId);
+    if (!game) {
+      throw new Error(`${gameId} does not exist!`);
     }
     // If user isn't a part of the game
-    if (!this.bucket[data.game].users.filter(user => user.nickname === data.nickname).length) {
-      throw new Error(`${data.nickname} is not a part of ${data.game}!`);
+    if (!game.hasUser({ nickname })) {
+      throw new Error(`${nickname} is not a part of ${gameId}!`);
     }
     // Filter out the user that disconnected from the user list.
-    this.bucket[data.game].users = this.bucket[data.game].users
-      .filter(user => user.nickname !== data.nickname);
+    game.users = game.users
+      .filter(user => user.nickname !== nickname);
     // Filter out the client reference for the user that disconnected from the user list.
-    this.bucket[data.game].clients = this.bucket[data.game].clients
-      .filter(user => user.nickname !== data.nickname);
+    game.clients = game.clients
+      .filter(user => user.nickname !== nickname);
     // Remove any votes cast by disconnected user.
-    delete this.bucket[data.game].votes[data.nickname];
+    game.revokeVote({ nickname });
 
-    Scrummy.broadcast(JSON.stringify({
+    game.broadcast(JSON.stringify({
       type: 'clientDisconnect',
-      data: { nickname: data.nickname },
-    }), this.bucket[data.game].clients);
-    logger(`${data.nickname} disconnected\n`);
+      data: { nickname },
+    }));
+    logger(`${nickname} disconnected\n`);
   }
 }
+
+Object.defineProperty(Scrummy, 'EXPOSED_METHODS', {
+  get() {
+    return [
+      'signIn',
+      'placeVote',
+      'reset',
+      'reveal',
+      'revokeVote',
+      'disconnect',
+    ];
+  },
+});
 
 module.exports = Scrummy;

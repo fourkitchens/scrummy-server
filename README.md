@@ -59,16 +59,18 @@ myScrummyClient.onmessage = response => {
 
 * [Scrummy](#Scrummy)
     * [new Scrummy()](#new_Scrummy_new)
-    * [.setupMessageHandling()](#Scrummy+setupMessageHandling) ⇒ <code>undefined</code>
-    * [.shutdown()](#Scrummy+shutdown) ⇒ <code>undefined</code>
-    * [.broadcast(data, clients)](#Scrummy+broadcast) ⇒ <code>undefined</code>
-    * [.handleError(message, ws)](#Scrummy+handleError) ⇒ <code>undefined</code>
-    * [.signIn(data, ws)](#Scrummy+signIn) ⇒ <code>undefined</code>
-    * [.placeVote(data, ws)](#Scrummy+placeVote) ⇒ <code>undefined</code>
-    * [.reset(data)](#Scrummy+reset) ⇒ <code>undefined</code>
-    * [.reveal(data)](#Scrummy+reveal) ⇒ <code>undefined</code>
-    * [.revokeVote(data)](#Scrummy+revokeVote) ⇒ <code>undefined</code>
-    * [.disconnect(data)](#Scrummy+disconnect) ⇒ <code>undefined</code>
+    * _instance_
+        * [.shutdown()](#Scrummy+shutdown) ⇒ <code>undefined</code>
+    * _static_
+        * [.dispatch(type, data, ws)](#Scrummy.dispatch) ⇒ <code>type</code>
+        * [.getGame(gameId)](#Scrummy.getGame) ⇒ <code>type</code>
+        * [.handleError(message, ws)](#Scrummy.handleError) ⇒ <code>undefined</code>
+        * [.signIn(data, ws)](#Scrummy.signIn) ⇒ <code>undefined</code>
+        * [.placeVote(data, ws)](#Scrummy.placeVote) ⇒ <code>undefined</code>
+        * [.reset(data)](#Scrummy.reset) ⇒ <code>undefined</code>
+        * [.reveal(data)](#Scrummy.reveal) ⇒ <code>undefined</code>
+        * [.disconnect(data)](#Scrummy.disconnect) ⇒ <code>undefined</code>
+        * [.revokeVote(data)](#Scrummy.revokeVote) ⇒ <code>undefined</code>
 
 <a name="new_Scrummy_new"></a>
 
@@ -80,121 +82,122 @@ constructor
   storing game related data, specifies which methods are available for invocation via websocket
   message, and sets up websocket message handling.
 
-<a name="Scrummy+setupMessageHandling"></a>
-
-### scrummy.setupMessageHandling() ⇒ <code>undefined</code>
-setupMessageHandling
   Sets up listeners for messages once a connection to the websocket server exists.
 
   If the message type is one of the exposed methods, said method executes with the parsed
   message and the websocket as arguments. Otherwise, the message gets rejected.
 
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
 <a name="Scrummy+shutdown"></a>
 
 ### scrummy.shutdown() ⇒ <code>undefined</code>
-shutdown
-  Shuts down the websocket server.
+shutdown - Shuts down the websocket server.
 
 **Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
-<a name="Scrummy+broadcast"></a>
+<a name="Scrummy.dispatch"></a>
 
-### scrummy.broadcast(data, clients) ⇒ <code>undefined</code>
-broadcast
-  Sends the provided message to all matching clients.
+### Scrummy.dispatch(type, data, ws) ⇒ <code>type</code>
+dispatch - description
 
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
+**Returns**: <code>type</code> - description  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| data | <code>String</code> | The message to send. |
-| clients | <code>Array</code> | The clients to send the message to. |
+| type | <code>type</code> | description |
+| data | <code>type</code> | description |
+| ws | <code>type</code> | description |
 
-<a name="Scrummy+handleError"></a>
+<a name="Scrummy.getGame"></a>
 
-### scrummy.handleError(message, ws) ⇒ <code>undefined</code>
-handleError
-  Sends an error to the client.
+### Scrummy.getGame(gameId) ⇒ <code>type</code>
+getGame - description
 
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| message | <code>string</code> | The error message to send. |
-| ws | <code>Object</code> | The client to send the message to. |
-
-<a name="Scrummy+signIn"></a>
-
-### scrummy.signIn(data, ws) ⇒ <code>undefined</code>
-signIn
-  Signs a user in if they have provided a valid username.
-
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
+**Returns**: <code>type</code> - description  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| data | <code>Object</code> | The signIn message from the client. |
-| ws | <code>Object</code> | The websocket to respond to. |
+| gameId | <code>type</code> | description |
 
-<a name="Scrummy+placeVote"></a>
+<a name="Scrummy.handleError"></a>
 
-### scrummy.placeVote(data, ws) ⇒ <code>undefined</code>
-placeVote
-  Places a vote on behalf of a client if the vote and game are valid.
+### Scrummy.handleError(message, ws) ⇒ <code>undefined</code>
+handleError - Sends an error to the client
 
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| data | <code>Object</code> | The signIn message from the client. |
-| ws | <code>Object</code> | The websocket to respond to. |
+| message | <code>String</code> | The error message to send |
+| ws | <code>Object</code> | The client to send the message to |
 
-<a name="Scrummy+reset"></a>
+<a name="Scrummy.signIn"></a>
 
-### scrummy.reset(data) ⇒ <code>undefined</code>
-reset
-  Resets the given game.
+### Scrummy.signIn(data, ws) ⇒ <code>undefined</code>
+signIn - Signs a user in if they have provided a valid username
 
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| data | <code>Object</code> | The message from the client. |
-
-<a name="Scrummy+reveal"></a>
-
-### scrummy.reveal(data) ⇒ <code>undefined</code>
-reveal
-  Broadcasts a reveal event to the appropriate game.
-
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| data | <code>Object</code> | The message from the client. |
+| data | <code>Object</code> | The signIn message from the client |
+| ws | <code>Object</code> | The websocket to respond to |
 
-<a name="Scrummy+revokeVote"></a>
+<a name="Scrummy.placeVote"></a>
 
-### scrummy.revokeVote(data) ⇒ <code>undefined</code>
-revokeVote
-  Revokes a vote and broadcasts change.
+### Scrummy.placeVote(data, ws) ⇒ <code>undefined</code>
+placeVote - Places a vote on behalf of a client if the vote and game are valid
 
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
-
-| Param | Type | Description |
-| --- | --- | --- |
-| data | <code>Object</code> | The message from the client. |
-
-<a name="Scrummy+disconnect"></a>
-
-### scrummy.disconnect(data) ⇒ <code>undefined</code>
-Disconnects a client from the given game.
-
-**Kind**: instance method of <code>[Scrummy](#Scrummy)</code>  
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
 
 | Param | Type | Description |
 | --- | --- | --- |
-| data | <code>Object</code> | The message from the client. |
+| data | <code>Object</code> | The signIn message from the client |
+| ws | <code>Object</code> | The websocket to respond to |
+
+<a name="Scrummy.reset"></a>
+
+### Scrummy.reset(data) ⇒ <code>undefined</code>
+reset - Resets the given game
+
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| data | <code>Object</code> | The message from the client |
+
+<a name="Scrummy.reveal"></a>
+
+### Scrummy.reveal(data) ⇒ <code>undefined</code>
+reveal - Broadcasts a reveal event to the appropriate game
+
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| data | <code>Object</code> | The message from the client |
+
+<a name="Scrummy.disconnect"></a>
+
+### Scrummy.disconnect(data) ⇒ <code>undefined</code>
+disconnect - Disconnects a client from the given game
+
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| data | <code>Object</code> | The message from the client |
+
+<a name="Scrummy.revokeVote"></a>
+
+### Scrummy.revokeVote(data) ⇒ <code>undefined</code>
+revokeVote - Revokes a vote and broadcasts change
+
+**Kind**: static method of <code>[Scrummy](#Scrummy)</code>  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| data | <code>Object</code> | The message from the client |
 
 
 ## Contributors

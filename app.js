@@ -6,99 +6,72 @@ const logger = require('./util/_logger');
 const User = require('./lib/User');
 const Game = require('./lib/Game');
 
-const gameNameGenerator = require('./util/gameNameGenerator');
+const gameNameGenerator = require('./util/gameNameGenerator')();
 const getFormattedEntityName = require('./util/getFormattedEntityName');
 const getUniqueFormattedEntityName = require('./util/getUniqueFormattedEntityName');
 
+const POINTS = config.get('points');
+
+/** Class representing a Scrummy server */
 class Scrummy {
   /**
-   * constructor
-   *   Creates a new Scrummy server.
+   * dispatch - description
    *
-   *   Starts a websocket server on the port specified in config, creates an empty bucket for
-   *   storing game related data, specifies which methods are available for invocation via websocket
-   *   message, and sets up websocket message handling.
-   *
-   * @return {undefined}
+   * @param  {type} type description
+   * @param  {type} data description
+   * @param  {type} ws   description
+   * @return {type}      description
    */
-  constructor() {
-    this.wss = server(config.get('port'));
-    this.points = config.get('points');
-    this.bucket = new Map();
-    this.setupMessageHandling();
-    this.gameNameGenerator = gameNameGenerator();
+  static dispatch(type, data, ws) {
+    if (Scrummy.EXPOSED_METHODS.includes(type)) {
+      try {
+        logger.info('performing', type);
+        Scrummy[type](data, ws);
+      } catch ({ message: errorMessage }) {
+        Scrummy.handleError(errorMessage, ws);
+      }
+    } else {
+      Scrummy.handleError(`${type} is not a message type Scrummy is prepared for!`, ws);
+    }
   }
   /**
-   * setupMessageHandling
-   *   Sets up listeners for messages once a connection to the websocket server exists.
+   * getGame - description
    *
-   *   If the message type is one of the exposed methods, said method executes with the parsed
-   *   message and the websocket as arguments. Otherwise, the message gets rejected.
-   *
-   * @return {undefined}
+   * @param  {type} gameId description
+   * @return {type}        description
    */
-  setupMessageHandling() {
-    this.wss.on('connection', (ws) => {
-      ws.on('message', (message) => {
-        logger(`received message: ${message}\n`);
-        const { data, type } = JSON.parse(message);
-        if (Scrummy.EXPOSED_METHODS.includes(type)) {
-          try {
-            logger(`performing: ${type}\n`);
-            this[type](data, ws);
-          } catch ({ message: errorMessage }) {
-            Scrummy.handleError(errorMessage, ws);
-          }
-        } else {
-          Scrummy.handleError(`${type} is not a message type Scrummy is prepared for!`, ws);
-        }
-      });
-    });
+  static getGame(gameId) {
+    return Scrummy.BUCKET.get(gameId);
   }
   /**
-   * shutdown
-   *   Shuts down the websocket server.
+   * handleError - Sends an error to the client
    *
-   * @return {undefined}
-   */
-  shutdown() {
-    this.wss.close();
-  }
-  /**
-   * handleError
-   *   Sends an error to the client.
-   *
-   * @param {string} message
-   *   The error message to send.
-   * @param {Object} ws
-   *   The client to send the message to.
+   * @param  {String}    message The error message to send
+   * @param  {Object}    ws      The client to send the message to
    * @return {undefined}
    */
   static handleError(message, ws) {
-    logger(`${message}\n`);
+    logger.info(`${message}`);
     ws.send(JSON.stringify({
       type: 'error',
       data: { message },
     }));
   }
   /**
-   * signIn
-   *   Signs a user in if they have provided a valid username.
+   * signIn - Signs a user in if they have provided a valid username
    *
-   * @param {Object} data
-   *   The signIn message from the client.
-   * @param {Object} ws
-   *   The websocket to respond to.
+   * @param  {Object}    data The signIn message from the client
+   * @param  {Object}    ws   The websocket to respond to
    * @return {undefined}
    */
-  signIn(data, ws) {
+  static signIn(data, ws) {
     const requestedGame = getFormattedEntityName(data.game)
-      || this.gameNameGenerator.next().value;
-    if (!this.bucket.has(requestedGame)) {
-      this.bucket.set(requestedGame, new Game({ name: requestedGame }));
-      logger(`created game: ${requestedGame}\n`);
+      || gameNameGenerator.next().value;
+    if (!Scrummy.BUCKET.has(requestedGame)) {
+      Scrummy.BUCKET.set(requestedGame, new Game({ name: requestedGame }));
+      logger.info(`created game: ${requestedGame}`);
     }
-    const game = this.bucket.get(requestedGame);
+    const game = Scrummy.getGame(requestedGame);
     const nickname = getUniqueFormattedEntityName(
       data.nickname,
       game.users.map(user => user.nickname)
@@ -127,24 +100,21 @@ class Scrummy {
         users: game.users,
       },
     }));
-    logger(`added user ${nickname} to ${game.name}\n`);
+    logger.info(`added user ${nickname} to ${game.name}`);
   }
   /**
-   * placeVote
-   *   Places a vote on behalf of a client if the vote and game are valid.
+   * placeVote - Places a vote on behalf of a client if the vote and game are valid
    *
-   * @param {Object} data
-   *   The signIn message from the client.
-   * @param {Object} ws
-   *   The websocket to respond to.
+   * @param  {Object}    data The signIn message from the client
+   * @param  {Object}    ws   The websocket to respond to
    * @return {undefined}
    */
-  placeVote({ game: gameId, nickname, vote }, ws) {
-    const game = this.bucket.get(gameId);
+  static placeVote({ game: gameId, nickname, vote }, ws) {
+    const game = Scrummy.getGame(gameId);
     if (!game) {
       throw new Error(`${gameId} does not exist!`);
     }
-    if (!this.points.includes(vote.toString())) {
+    if (!POINTS.includes(vote.toString())) {
       throw new Error(`${vote} is not a valid vote!`);
     }
     game.votes[nickname] = vote;
@@ -155,18 +125,16 @@ class Scrummy {
       type: 'someoneVoted',
       data: { votes: game.votes },
     }));
-    logger(`${nickname} voted ${vote} in ${gameId}\n`);
+    logger.info(`${nickname} voted ${vote} in ${gameId}`);
   }
   /**
-   * reset
-   *   Resets the given game.
+   * reset - Resets the given game
    *
-   * @param {Object} data
-   *   The message from the client.
+   * @param  {Object}    data The message from the client
    * @return {undefined}
    */
-  reset({ game: gameId, nickname }) {
-    const game = this.bucket.get(gameId);
+  static reset({ game: gameId, nickname }) {
+    const game = Scrummy.getGame(gameId);
     if (!game) {
       throw new Error(`${gameId} does not exist!`);
     }
@@ -175,18 +143,16 @@ class Scrummy {
       type: 'reset',
       data: { votes: game.votes },
     }));
-    logger(`${nickname} reset ${game}\n`);
+    logger.info(`${nickname} reset ${game}`);
   }
   /**
-   * reveal
-   *   Broadcasts a reveal event to the appropriate game.
+   * reveal - Broadcasts a reveal event to the appropriate game
    *
-   * @param {Object} data
-   *   The message from the client.
+   * @param  {Object}    data The message from the client
    * @return {undefined}
    */
-  reveal({ game: gameId, nickname }) {
-    const game = this.bucket.get(gameId);
+  static reveal({ game: gameId, nickname }) {
+    const game = Scrummy.getGame(gameId);
     if (!game) {
       throw new Error(`${gameId} does not exist!`);
     }
@@ -195,37 +161,16 @@ class Scrummy {
       throw new Error(`${nickname} has no votes to reveal!`);
     }
     game.broadcast(JSON.stringify({ type: 'reveal' }));
-    logger(`${nickname} revealed votes in ${gameId}\n`);
+    logger.info(`${nickname} revealed votes in ${gameId}`);
   }
   /**
-   * revokeVote
-   *   Revokes a vote and broadcasts change.
+   * disconnect - Disconnects a client from the given game
    *
-   * @param {Object} data
-   *   The message from the client.
+   * @param  {Object}    data The message from the client
    * @return {undefined}
    */
-  revokeVote({ game: gameId, nickname }) {
-    const game = this.bucket.get(gameId);
-    if (!game) {
-      throw new Error(`${gameId} does not exist!`);
-    }
-    // If user has not voted
-    if (!game.votes[nickname]) {
-      throw new Error(`${nickname} has no votes to revoke!`);
-    }
-    game.revokeVote({ nickname });
-    logger(`${nickname} revoked his or her vote in ${gameId}\n`);
-  }
-  /**
-   *   Disconnects a client from the given game.
-   *
-   * @param {Object} data
-   *   The message from the client.
-   * @return {undefined}
-   */
-  disconnect({ game: gameId, nickname }) {
-    const game = this.bucket.get(gameId);
+  static disconnect({ game: gameId, nickname }) {
+    const game = Scrummy.getGame(gameId);
     if (!game) {
       throw new Error(`${gameId} does not exist!`);
     }
@@ -246,20 +191,76 @@ class Scrummy {
       type: 'clientDisconnect',
       data: { nickname },
     }));
-    logger(`${nickname} disconnected\n`);
+    logger.info(`${nickname} disconnected\n`);
+  }
+  /**
+   * revokeVote - Revokes a vote and broadcasts change
+   *
+   * @param  {Object}    data The message from the client
+   * @return {undefined}
+   */
+  static revokeVote({ game: gameId, nickname }) {
+    const game = Scrummy.getGame(gameId);
+    if (!game) {
+      throw new Error(`${gameId} does not exist!`);
+    }
+    // If user has not voted
+    if (!game.votes[nickname]) {
+      throw new Error(`${nickname} has no votes to revoke!`);
+    }
+    game.revokeVote({ nickname });
+    logger.info(`${nickname} revoked their vote in ${gameId}`);
+  }
+  /**
+   * constructor
+   *   Creates a new Scrummy server.
+   *
+   *   Starts a websocket server on the port specified in config, creates an empty bucket for
+   *   storing game related data, specifies which methods are available for invocation via websocket
+   *   message, and sets up websocket message handling.
+   *
+   *   Sets up listeners for messages once a connection to the websocket server exists.
+   *
+   *   If the message type is one of the exposed methods, said method executes with the parsed
+   *   message and the websocket as arguments. Otherwise, the message gets rejected.
+   *
+   * @return {undefined}
+   */
+  constructor() {
+    this.wss = server(config.get('port'));
+    this.wss.on('connection', (ws) => {
+      ws.on('message', (message) => {
+        logger.log('received message', message);
+        const { data, type } = JSON.parse(message);
+        Scrummy.dispatch(type, data, ws);
+      });
+    });
+  }
+  /**
+   * shutdown - Shuts down the websocket server.
+   *
+   * @return {undefined}
+   */
+  shutdown() {
+    this.wss.close();
   }
 }
 
-Object.defineProperty(Scrummy, 'EXPOSED_METHODS', {
-  get() {
-    return [
-      'signIn',
-      'placeVote',
-      'reset',
-      'reveal',
-      'revokeVote',
-      'disconnect',
-    ];
+Object.defineProperties(Scrummy, {
+  EXPOSED_METHODS: {
+    get() {
+      return [
+        'signIn',
+        'placeVote',
+        'reset',
+        'reveal',
+        'revokeVote',
+        'disconnect',
+      ];
+    },
+  },
+  BUCKET: {
+    value: new Map(),
   },
 });
 

@@ -1,7 +1,7 @@
-const loggingEnabled = require('config').logging;
+const { Logger, transports: { Console } } = require('winston');
 
-module.exports = (message) => {
-  if (loggingEnabled) {
-    process.stdout.write(message);
-  }
-};
+module.exports = new Logger({
+  transports: [
+    new Console({ colorize: true }),
+  ],
+});

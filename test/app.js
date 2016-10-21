@@ -1,6 +1,6 @@
 const config = require('config');
 const test = require('ava');
-const WebSocket = require('ws');
+const WebSocket = require('uws');
 const Scrummy = require('../app.js');
 const _ = require('lodash');
 
@@ -46,10 +46,12 @@ test.serial.cb('Can start a new game', (t) => {
   }));
   t.context.sockets[0].on('message', (response) => {
     const resp = JSON.parse(response);
-    t.deepEqual(resp.data.points, config.get('points'));
-    t.truthy(config.get('words').includes(_.get(resp, 'data.game')));
-    t.is(resp.data.users[0].nickname, 'taylor');
-    t.end();
+    if (resp.type === 'youSignedIn') {
+      t.deepEqual(resp.data.points, config.get('points'));
+      t.truthy(config.get('words').includes(_.get(resp, 'data.game')));
+      t.is(resp.data.users[0].nickname, 'taylor');
+      t.end();
+    }
   });
 });
 
@@ -94,15 +96,14 @@ test.serial.cb('Supports multiple rooms independently', (t) => {
   }));
   t.context.sockets[7].on('message', (response) => {
     const resp = JSON.parse(response);
-    const app = t.context.app;
     if (resp.type === 'someoneSignedIn') {
-      t.is(app.bucket.get('characters i will never like').users[0].nickname, 'spiderman');
-      t.is(app.bucket.get('characters i will never like').users[0].game, 'characters i will never like');
+      t.is(Scrummy.getGame('characters i will never like').users[0].nickname, 'spiderman');
+      t.is(Scrummy.getGame('characters i will never like').users[0].game, 'characters i will never like');
       const lowerCaseAvengers = avengers.map(avenger => avenger.toLowerCase());
-      app.bucket.get('avengers').users.map(user => user.nickname).forEach((nickname) => {
+      Scrummy.getGame('avengers').users.map(user => user.nickname).forEach((nickname) => {
         t.truthy(lowerCaseAvengers.includes(nickname));
       });
-      app.bucket.get('avengers').users.map(user => user.game).forEach((game) => {
+      Scrummy.getGame('avengers').users.map(user => user.game).forEach((game) => {
         t.is(game, 'avengers');
       });
       t.end();
@@ -164,7 +165,7 @@ test.serial.cb('Allows user to vote', (t) => {
       }));
     }
     if (resp.type === 'someoneVoted') {
-      if (t.context.app.bucket.get(game).votes.taylor === 1) {
+      if (Scrummy.getGame(game).votes.taylor === 1) {
         t.pass();
         t.end();
       } else {
@@ -398,7 +399,7 @@ test.serial.cb('Allows a game to be reset', (t) => {
       }));
     }
     if (resp.type === 'reset') {
-      t.true(Object.keys(t.context.app.bucket.get(game).votes).length === 0);
+      t.true(Object.keys(Scrummy.getGame(game).votes).length === 0);
       t.end();
     }
   });
@@ -537,9 +538,9 @@ test.serial.cb('Cleans game up after disconnected client', (t) => {
     }
 
     if (resp.type === 'clientDisconnect') {
-      t.true(t.context.app.bucket.get(game).clients.length === 1);
-      t.true(t.context.app.bucket.get(game).users.length === 1);
-      t.true(!('flip' in t.context.app.bucket.get(game).votes));
+      t.true(Scrummy.getGame(game).clients.length === 1);
+      t.true(Scrummy.getGame(game).users.length === 1);
+      t.true(!('flip' in Scrummy.getGame(game).votes));
       t.end();
     }
   });

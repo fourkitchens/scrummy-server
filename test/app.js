@@ -182,12 +182,9 @@ test.serial.cb('Allows user to vote', (t) => {
 
 test.serial.cb('Fails on reveal if there are no votes for the given game', (t) => {
   t.plan(1);
-  let nickname;
+  const nickname = 'taylor';
   t.context.sockets[0].on('message', (response) => {
     const resp = JSON.parse(response);
-    if (resp.data.nickname) {
-      nickname = resp.data.nickname;
-    }
     if (resp.type === 'youSignedIn') {
       t.context.sockets[0].send(JSON.stringify({
         type: 'reveal',
@@ -204,7 +201,7 @@ test.serial.cb('Fails on reveal if there are no votes for the given game', (t) =
   });
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
-    data: { nickname: 'Taylor' },
+    data: { nickname },
   }));
 });
 
@@ -467,7 +464,7 @@ test.serial.cb('Fails to disconnect a client if a game doesn\'t exist', (t) => {
       }));
     }
     if (resp.type === 'someoneSignedIn') {
-      if (resp.data.nickname === 'flip') {
+      if (resp.data.users.length === 2) {
         t.context.sockets[1].send(JSON.stringify({
           type: 'disconnect',
           data: {
@@ -516,7 +513,7 @@ test.serial.cb('Cleans game up after disconnected client', (t) => {
       }));
     }
     if (resp.type === 'someoneSignedIn') {
-      if (resp.data.nickname === 'flip') {
+      if (resp.data.users.length === 2) {
         t.context.sockets[1].send(JSON.stringify({
           type: 'placeVote',
           data: {
@@ -580,7 +577,7 @@ test.serial.cb('Allows a vote to be revoked', (t) => {
       }));
     }
     if (resp.type === 'clientRevoke') {
-      t.true(resp.data.nickname === nickname);
+      t.is(Object.keys(resp.data.votes).length, 0);
       t.end();
     }
   });
@@ -661,5 +658,46 @@ test.serial.cb('Disallows a vote to be revoked if the respective game does not e
   t.context.sockets[0].send(JSON.stringify({
     type: 'signIn',
     data: { nickname },
+  }));
+});
+
+test.serial.cb('Returns 0 for number of players if game does not exist', (t) => {
+  t.plan(1);
+  const game = 'notanactualgame';
+  t.context.sockets[0].on('message', (response) => {
+    const resp = JSON.parse(response);
+    if (resp.type === 'playerCount') {
+      t.is(resp.data.numPlayers, 0);
+      t.end();
+    }
+  });
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'getPlayerCount',
+    data: { game },
+  }));
+});
+
+
+test.serial.cb('Returns number of players of a given game', (t) => {
+  t.plan(1);
+  const nickname = 'Winston';
+  const game = 'True American';
+  t.context.sockets[0].on('message', (response) => {
+    const resp = JSON.parse(response);
+    if (resp.type === 'youSignedIn') {
+      t.context.sockets[0].send(JSON.stringify({
+        type: 'getPlayerCount',
+        data: { game },
+      }));
+    }
+    if (resp.type === 'playerCount') {
+      t.is(resp.data.numPlayers, 1);
+      t.end();
+    }
+  });
+
+  t.context.sockets[0].send(JSON.stringify({
+    type: 'signIn',
+    data: { game, nickname },
   }));
 });

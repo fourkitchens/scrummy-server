@@ -96,7 +96,6 @@ class Scrummy {
     game.broadcast(JSON.stringify({
       type: 'someoneSignedIn',
       data: {
-        nickname,
         users: game.users,
       },
     }));
@@ -128,7 +127,31 @@ class Scrummy {
     logger.info(`${nickname} voted ${vote} in ${gameId}`);
   }
   /**
-   * reset - Resets the given game
+   * getPlayerCount
+   *   Returns numbers of players for a given game.
+   *
+   * @param {Object} data
+   *   The message from the client.
+   * @param {Object} ws
+   *   The websocket to respond to.
+   * @return {undefined}
+   */
+  static getPlayerCount({ game: gameId }, ws) {
+    let numPlayers = 0;
+    const game = Scrummy.getGame(getFormattedEntityName(gameId));
+    if (game) {
+      numPlayers = game.users.length;
+    }
+    ws.send(JSON.stringify({
+      type: 'playerCount',
+      data: { numPlayers },
+    }));
+    logger.info(`${gameId} reported ${numPlayers} players.\n`);
+  }
+
+  /**
+   * reset
+   *   Resets the given game.
    *
    * @param  {Object}    data The message from the client
    * @return {undefined}
@@ -189,7 +212,7 @@ class Scrummy {
 
     game.broadcast(JSON.stringify({
       type: 'clientDisconnect',
-      data: { nickname },
+      data: { users: game.users },
     }));
     logger.info(`${nickname} disconnected\n`);
   }
@@ -208,6 +231,7 @@ class Scrummy {
     if (!game.votes[nickname]) {
       throw new Error(`${nickname} has no votes to revoke!`);
     }
+
     game.revokeVote({ nickname });
     logger.info(`${nickname} revoked their vote in ${gameId}`);
   }
@@ -236,8 +260,10 @@ class Scrummy {
       });
     });
   }
+
   /**
-   * shutdown - Shuts down the websocket server.
+   * shutdown
+   *   Shuts down the websocket server.
    *
    * @return {undefined}
    */
@@ -256,6 +282,7 @@ Object.defineProperties(Scrummy, {
         'reveal',
         'revokeVote',
         'disconnect',
+        'getPlayerCount',
       ];
     },
   },

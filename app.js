@@ -83,6 +83,7 @@ class Scrummy {
       game: game.name,
       nickname,
       ws,
+      watch: data.watch,
     }));
     ws.send(JSON.stringify({
       type: 'youSignedIn',

@@ -252,7 +252,7 @@ class Scrummy {
    * @return {undefined}
    */
   constructor() {
-    this.wss = server(config.get('port'));
+    this.wss = server(process.env.PORT || config.get('port'));
     this.wss.on('connection', (ws) => {
       ws.on('message', (message) => {
         logger.log('received message', message);

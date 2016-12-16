@@ -65,6 +65,7 @@
   "dependencies": {
     "ava": "^0.16.0",
     "config": "^1.21.0",
+    "js-yaml": "^3.7.0",
     "lodash": "^4.15.0",
     "uws": "^0.10.12",
     "winston": "^2.2.0"

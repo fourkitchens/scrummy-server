@@ -91,6 +91,7 @@ class Scrummy {
         nickname,
         points: config.get('points'),
         game: game.name,
+        votes: game.votes,
         users: game.users,
       },
     }));

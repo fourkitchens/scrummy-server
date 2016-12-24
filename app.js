@@ -74,7 +74,7 @@ class Scrummy {
     const game = Scrummy.getGame(requestedGame);
     const nickname = getUniqueFormattedEntityName(
       data.nickname,
-      game.users.map(user => user.nickname)
+      game.users.map(user => user.nickname),
     );
     if (!nickname) {
       throw new Error('This username is unavailable; please pick another.');

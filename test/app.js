@@ -24,7 +24,7 @@ test.beforeEach(async t => {
   await Promise.all(promises, resolve => resolve());
 });
 
-test.afterEach.always(async t => {
+test.afterEach.always(t => {
   t.context.app.shutdown();
   t.context.sockets.forEach((socket) => {
     if (socket.connected) {

@@ -146,7 +146,7 @@ class Scrummy {
       type: 'playerCount',
       data: { numPlayers },
     }));
-    logger.info(`${gameId} reported ${numPlayers} players.\n`);
+    logger.info(`${gameId} reported ${numPlayers} players.`);
   }
 
   /**
@@ -166,7 +166,7 @@ class Scrummy {
       type: 'reset',
       data: { votes: game.votes },
     }));
-    logger.info(`${nickname} reset ${game}`);
+    logger.info(`${nickname} reset ${gameId}`);
   }
   /**
    * reveal - Broadcasts a reveal event to the appropriate game
@@ -201,20 +201,7 @@ class Scrummy {
     if (!game.hasUser({ nickname })) {
       throw new Error(`${nickname} is not a part of ${gameId}!`);
     }
-    // Filter out the user that disconnected from the user list.
-    game.users = game.users
-      .filter(user => user.nickname !== nickname);
-    // Filter out the client reference for the user that disconnected from the user list.
-    game.clients = game.clients
-      .filter(user => user.nickname !== nickname);
-    // Remove any votes cast by disconnected user.
-    game.revokeVote({ nickname });
-
-    game.broadcast(JSON.stringify({
-      type: 'clientDisconnect',
-      data: { users: game.users },
-    }));
-    logger.info(`${nickname} disconnected\n`);
+    game.disconnectUser(nickname);
   }
   /**
    * revokeVote - Revokes a vote and broadcasts change
